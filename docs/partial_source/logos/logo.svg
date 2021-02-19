@@ -74,17 +74,17 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.7071068"
-     inkscape:cx="428.38363"
+     inkscape:cx="181.60337"
      inkscape:cy="230.23395"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
      showguides="false"
      units="px"
-     inkscape:window-width="1853"
-     inkscape:window-height="1025"
-     inkscape:window-x="1987"
-     inkscape:window-y="27"
+     inkscape:window-width="1920"
+     inkscape:window-height="1052"
+     inkscape:window-x="3840"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:measure-start="0,0"
      inkscape:measure-end="0,0" />
@@ -96,7 +96,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -148,18 +148,5 @@
            x="73"
            y="412"
            style="fill:#009600;fill-opacity:1" /></flowRegion><flowPara
-         id="flowPara838">MEMORY</flowPara></flowRoot>    <flowRoot
-       xml:space="preserve"
-       id="flowRoot914"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ff0000;fill-opacity:1;stroke:none"
-       transform="matrix(0.19703788,0,0,0.19703788,25.039407,199.81706)"><flowRegion
-         id="flowRegion916"
-         style="fill:#ff0000;fill-opacity:1"><rect
-           id="rect918"
-           width="311.12695"
-           height="50.91169"
-           x="342.23965"
-           y="422.63962"
-           style="fill:#ff0000;fill-opacity:1" /></flowRegion><flowPara
-         id="flowPara920">[coming soon!]</flowPara></flowRoot>  </g>
+         id="flowPara838">MEMORY</flowPara></flowRoot>  </g>
 </svg>
