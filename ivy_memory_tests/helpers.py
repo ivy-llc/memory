@@ -63,7 +63,13 @@ def _convert_vars(vars_in, from_type, to_type_callable=None, to_type_attribute_m
             if to_type_callable:
                 new_vars.append(to_type_callable(var))
             elif to_type_attribute_method_str:
-                new_vars.append(getattr(var, to_type_attribute_method_str)())
+                new_var = var
+                if isinstance(to_type_attribute_method_str, list):
+                    for str_ in to_type_attribute_method_str:
+                        new_var = getattr(new_var, str_)()
+                else:
+                    new_var = getattr(new_var, to_type_attribute_method_str)()
+                new_vars.append(new_var)
             else:
                 raise Exception('Invalid. A conversion callable is required.')
         elif to_type is not None and isinstance(var, to_type):
@@ -139,7 +145,7 @@ def torch_call(func, *args, **kwargs):
     new_kwargs = dict(zip(kwargs.keys(), new_kw_vals))
     output = func(*new_args, **new_kwargs)
     if isinstance(output, tuple):
-        return tuple(_convert_vars(output, _torch.Tensor, _np.asarray))
+        return tuple(_convert_vars(output, _torch.Tensor, to_type_attribute_method_str=['detach', 'numpy']))
     else:
         return _convert_vars([output], _torch.Tensor, _np.asarray)[0]
 
