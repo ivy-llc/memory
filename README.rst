@@ -66,9 +66,9 @@ Overview
 
 **What is Ivy Memory?**
 
-Ivy memory provides a range of differentiable memory modules,
-including learnt modules such as Long Short Term Memory (LSTM) and Neural Turing Machines (NTM),
-but also parameter-free modules, such as End-to-End Egospheric Spatial Memory (ESM).
+Ivy memory provides differentiable memory modules,
+including learnt modules such as Neural Turing Machines (NTM),
+but also parameter-free modules such as End-to-End Egospheric Spatial Memory (ESM).
 Check out the docs_ for more info!
 
 The library is built on top of the Ivy deep learning framework.

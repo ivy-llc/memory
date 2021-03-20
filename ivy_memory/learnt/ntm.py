@@ -9,8 +9,7 @@ import collections
 from ivy.core.container import Container
 
 # local
-from ivy_memory.learnt import LSTM
-from ivy_memory.learnt import Linear
+from ivy.neural_net.layers import Linear, LSTM
 
 
 NTMControllerState = collections.namedtuple('NTMControllerState',
@@ -148,7 +147,8 @@ class NTMCell:
         prev_read_vector_list = prev_state[1]
 
         controller_input = ivy.concatenate([x] + prev_read_vector_list, axis=1)
-        controller_output, controller_state = self._controller.forward(ivy.expand_dims(controller_input, -2), prev_state[0], v=v.ctrl)
+        controller_output, controller_state = self._controller.forward(ivy.expand_dims(controller_input, -2),
+                                                                       initial_state=prev_state[0], v=v.ctrl)
         controller_output = controller_output[..., -1, :]
 
         parameters = self._controller_proj.forward(controller_output, v=v.ctrl_proj)

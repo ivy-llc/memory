@@ -159,7 +159,7 @@ def main():
                 v = self.v
             mem = self._esm.forward(obs)
             x = ivy.reshape(mem.mean, (-1, self._channels_in))
-            return self._linear.forward(x, v)
+            return self._linear.forward(x, v=v)
 
     # create model
     in_channels = 32
