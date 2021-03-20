@@ -95,7 +95,7 @@ def test_realtime_speed(dev_str, call):
     esm = ESM(omni_image_dims=omni_img_dims, device=device)
     memory = esm.empty_memory(batch_size, num_timesteps)
     start_time = time.perf_counter()
-    for i in range(150):
+    for i in range(50):
         obs = _get_dummy_obs(batch_size, num_timesteps, num_cams, image_dims, num_feature_channels, device)
         memory = esm.forward(obs, memory, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
                              image_dims=image_dims)
