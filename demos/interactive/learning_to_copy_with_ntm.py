@@ -11,7 +11,7 @@ from ivy_memory.learnt import NTM
 
 
 def loss_fn(ntm, v, total_seq, target_seq, seq_len):
-    output_sequence = ntm.forward(total_seq, v=v)
+    output_sequence = ntm(total_seq, v=v)
     pred_logits = output_sequence[:, seq_len + 1:, :]
     pred_vals = ivy.sigmoid(pred_logits)
     return ivy.reduce_sum(ivy.binary_cross_entropy(pred_vals, target_seq))[0] / pred_vals.shape[0], pred_vals

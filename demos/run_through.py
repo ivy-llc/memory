@@ -31,7 +31,7 @@ def main():
 
         def forward(self, x):
             x = self._linear(x)
-            return self._lstm.forward(x)
+            return self._lstm(x)
 
     # create model
     in_channels = 32
@@ -99,7 +99,7 @@ def main():
 
         def call(self, x, **kwargs):
             x = self._linear(x)
-            return self._ntm.forward(x)
+            return self._ntm(x)
 
     # create model
     in_channels = 32
@@ -157,9 +157,9 @@ def main():
         def forward(self, obs, v=None):
             if v is None:
                 v = self.v
-            mem = self._esm.forward(obs)
+            mem = self._esm(obs)
             x = ivy.reshape(mem.mean, (-1, self._channels_in))
-            return self._linear.forward(x, v=v)
+            return self._linear(x, v=v)
 
     # create model
     in_channels = 32

@@ -10,7 +10,7 @@ MIN_DENOMINATOR = 1e-12
 
 
 # noinspection PyUnboundLocalVariable
-class ESM:
+class ESM(ivy.Module):
 
     def __init__(self, depth_prior=None, feat_prior=None, num_feature_channels=3, smooth_kernel_size=25,
                  threshold_var_factor=0.99, depth_limits=(1e-3, 10.), depth_var_limits=(1e-3, 1e4),
@@ -75,6 +75,9 @@ class ESM:
         # memory
         self._stateful = stateful
         self._memory = None
+
+        # variables
+        ivy.Module.__init__(self)
 
     # Helpers #
     # --------#
@@ -160,8 +163,7 @@ class ESM:
 
         # cam 2 to sphere 2 coords
 
-        sphere_coords_f2 = ivy_vision.cam_to_sphere_coords(cam_coords_f2, [batch_size, num_timesteps, num_cams],
-                                                           image_dims)
+        sphere_coords_f2 = ivy_vision.cam_to_sphere_coords(cam_coords_f2)
         image_var_f2 = image_var_f1
 
         # angular pixel coords
@@ -538,8 +540,8 @@ class ESM:
     # Main call method #
     # -----------------#
 
-    def forward(self, obs: ESMObservation, memory: ESMMemory = None, batch_size=None, num_timesteps=None, num_cams=None,
-                image_dims=None):
+    def _forward(self, obs: ESMObservation, memory: ESMMemory = None, batch_size=None, num_timesteps=None,
+                 num_cams=None, image_dims=None):
         """
         Perform ESM update step.
 

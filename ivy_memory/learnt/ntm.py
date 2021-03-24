@@ -20,7 +20,7 @@ def _expand(x, dim, N):
     return ivy.concatenate([ivy.expand_dims(x, dim) for _ in range(N)], dim)
 
 
-class NTMCell:
+class NTMCell(ivy.Module):
     def __init__(self, controller, controller_proj, output_proj, output_dim, ctrl_input_size, ctrl_output_size,
                  total_parameter_num, memory_size, memory_vector_dim, read_head_num, write_head_num, v=None, usage=None,
                  addressing_mode='content_and_location', shift_range=1, clip_value=20, init_value=1e-6,
@@ -32,6 +32,7 @@ class NTMCell:
         self._memory_vector_dim = memory_vector_dim
         self._read_head_num = read_head_num
         self._write_head_num = write_head_num
+        self._init_value = init_value
         self._addressing_mode = addressing_mode
         self._clip_value = clip_value
         self._output_dim = output_dim
@@ -51,24 +52,6 @@ class NTMCell:
         else:
             self._usage = ivy.zeros([memory_size, ])
 
-        # variables
-        if v is None:
-            self.v = dict()
-            wlim = (6 / (2 * memory_vector_dim)) ** 0.5
-            self.v['read_weights'] =\
-                dict(zip(['w_' + str(i) for i in range(read_head_num)],
-                         [ivy.variable(ivy.random_uniform(-wlim, wlim, [memory_vector_dim, ]))
-                          for _ in range(read_head_num)]))
-            wlim = (6 / (2 * memory_size)) ** 0.5
-            self.v['write_weights'] =\
-                dict(zip(['w_' + str(i) for i in range(read_head_num + write_head_num)],
-                         [ivy.variable(ivy.random_uniform(-wlim, wlim, [memory_size, ]))
-                          for _ in range(read_head_num + write_head_num)]))
-            self.v['memory'] = ivy.variable(ivy.ones([memory_size, memory_vector_dim]) * init_value)
-            self.v = Container(self.v)
-        else:
-            self.v = Container(v)
-
         # step
         self._step = 0
 
@@ -77,6 +60,25 @@ class NTMCell:
         self._retroactive_updates = retroactive_updates
         self._retroactive_discount = retroactive_discount
         self._with_erase = with_erase
+
+        # variables
+        self._create_variables()
+        ivy.Module.__init__(self)
+
+    def _create_variables(self):
+        vars_dict = dict()
+        wlim = (6 / (2 * self._memory_vector_dim)) ** 0.5
+        vars_dict['read_weights'] =\
+            dict(zip(['w_' + str(i) for i in range(self._read_head_num)],
+                     [ivy.variable(ivy.random_uniform(-wlim, wlim, [self._memory_vector_dim, ]))
+                      for _ in range(self._read_head_num)]))
+        wlim = (6 / (2 * self._memory_size)) ** 0.5
+        vars_dict['write_weights'] =\
+            dict(zip(['w_' + str(i) for i in range(self._read_head_num + self._write_head_num)],
+                     [ivy.variable(ivy.random_uniform(-wlim, wlim, [self._memory_size, ]))
+                      for _ in range(self._read_head_num + self._write_head_num)]))
+        vars_dict['memory'] = ivy.variable(ivy.ones([self._memory_size, self._memory_vector_dim]) * self._init_value)
+        return vars_dict
 
     def _addressing(self, k, beta, g, s, gamma, prev_M, prev_w):
 
@@ -128,7 +130,7 @@ class NTMCell:
             v = Container(v)
         read_vector_list = [_expand(ivy.tanh(var), dim=0, N=batch_size)
                             for _, var in v.read_weights.to_iterator()]
-        w_list = [_expand(ivy.nn.softmax(var), dim=0, N=batch_size)
+        w_list = [_expand(ivy.softmax(var), dim=0, N=batch_size)
                   for _, var in v.write_weights.to_iterator()]
         usage_indicator = _expand(self._usage, dim=0, N=batch_size)
         M = _expand(v.memory, dim=0, N=batch_size)
@@ -139,19 +141,15 @@ class NTMCell:
             usage_indicator=usage_indicator,
             M=M)
 
-    def forward(self, x, prev_state, v=None):
-        if v is None:
-            v = self.v
-        else:
-            v = Container(v)
+    def _forward(self, x, prev_state):
         prev_read_vector_list = prev_state[1]
 
         controller_input = ivy.concatenate([x] + prev_read_vector_list, axis=1)
-        controller_output, controller_state = self._controller.forward(ivy.expand_dims(controller_input, -2),
-                                                                       initial_state=prev_state[0], v=v.ctrl)
+        controller_output, controller_state = self._controller(ivy.expand_dims(controller_input, -2),
+                                                               initial_state=prev_state[0])
         controller_output = controller_output[..., -1, :]
 
-        parameters = self._controller_proj.forward(controller_output, v=v.ctrl_proj)
+        parameters = self._controller_proj(controller_output)
         parameters = ivy.clip(parameters, -self._clip_value, self._clip_value)
         head_parameter_list = \
             ivy.split(parameters[:, :self._num_parameters_per_head * self._num_heads], self._num_heads,
@@ -164,12 +162,12 @@ class NTMCell:
         w_list = []
         for i, head_parameter in enumerate(head_parameter_list):
             k = ivy.tanh(head_parameter[:, 0:self._memory_vector_dim])
-            beta = ivy.nn.softplus(head_parameter[:, self._memory_vector_dim])
-            g = ivy.nn.sigmoid(head_parameter[:, self._memory_vector_dim + 1])
-            s = ivy.nn.softmax(
+            beta = ivy.softplus(head_parameter[:, self._memory_vector_dim])
+            g = ivy.sigmoid(head_parameter[:, self._memory_vector_dim + 1])
+            s = ivy.softmax(
                 head_parameter[:, self._memory_vector_dim + 2:self._memory_vector_dim +
                                                               2 + (self._shift_range * 2 + 1)])
-            gamma = ivy.nn.softplus(head_parameter[:, -1]) + 1
+            gamma = ivy.softplus(head_parameter[:, -1]) + 1
             w = self._addressing(k, beta, g, s, gamma, prev_M, prev_w_list[i])
             w_list.append(w)
 
@@ -219,7 +217,7 @@ class NTMCell:
             add_vector = ivy.expand_dims(ivy.tanh(erase_add_list[i * 2 + 1]), axis=1)
             M = M + ivy.matmul(w, add_vector)
 
-        NTM_output = self._output_proj.forward(ivy.concatenate([controller_output] + read_vector_list, axis=1), v=v.out_proj)
+        NTM_output = self._output_proj(ivy.concatenate([controller_output] + read_vector_list, axis=1))
         NTM_output = ivy.clip(NTM_output, -self._clip_value, self._clip_value)
 
         self._step += 1
@@ -244,7 +242,7 @@ class NTMCell:
         return self._output_dim
 
 
-class NTM:
+class NTM(ivy.Module):
 
     def __init__(self, input_dim, output_dim, ctrl_output_size, ctrl_layers, memory_size, memory_vector_dim,
                  read_head_num, write_head_num, v=None, usage=None, addressing_mode='content_and_location',
@@ -254,12 +252,15 @@ class NTM:
         num_heads = read_head_num + write_head_num
         num_parameters_per_head = memory_vector_dim + 1 + 1 + (shift_range * 2 + 1) + 1
         total_parameter_num = num_parameters_per_head * num_heads + memory_vector_dim * 2 * write_head_num
-        ctrl = LSTM(ctrl_input_size, ctrl_output_size, ctrl_layers,
-                    v=(v.ctrl if v is not None and 'ctrl' in v else None))
-        ctrl_proj = Linear(ctrl_output_size, total_parameter_num,
-                           v.ctrl_proj if v is not None and 'ctrl_proj' in v else None)
-        out_proj = Linear(ctrl_output_size + read_head_num * memory_vector_dim, output_dim,
-                          v.out_proj if v is not None and 'out_proj' in v else None)
+        ctrl_v = v.ntm_cell.controller if \
+            v is not None and 'ntm_cell' in v and 'controller' in v.ntm_cell else None
+        ctrl = LSTM(ctrl_input_size, ctrl_output_size, ctrl_layers, v=ctrl_v)
+        ctrl_proj_v = v.ntm_cell.controller_proj \
+            if v is not None and 'ntm_cell' in v and 'controller_proj' in v.ntm_cell else None
+        ctrl_proj = Linear(ctrl_output_size, total_parameter_num, ctrl_proj_v)
+        out_proj_v = v.ntm_cell.output_proj \
+            if v is not None and 'ntm_cell' in v and 'output_proj' in v.ntm_cell else None
+        out_proj = Linear(ctrl_output_size + read_head_num * memory_vector_dim, output_dim, out_proj_v)
 
         ntm_v = v.ntm if v is not None and 'ntm' in v else None
         ntm_cell = NTMCell(ctrl, ctrl_proj, out_proj, output_dim, ctrl_input_size, ctrl_output_size,
@@ -267,22 +268,18 @@ class NTM:
                            usage, addressing_mode, shift_range, clip_value, init_value, sequential_writing,
                            retroactive_updates, retroactive_discount, with_erase)
         self._ntm_cell = ntm_cell
-        self.v = Container({'ntm': ntm_cell.v, 'ctrl': ctrl.v, 'ctrl_proj': ctrl_proj.v, 'out_proj': out_proj.v})
+        ivy.Module.__init__(self, v=v)
 
-    def forward(self, inputs, hidden=None, v=None):
+    def _forward(self, inputs, hidden=None):
         inputs_shape = list(inputs.shape)
         batch_shape = inputs_shape[:-2]
         time_dim = inputs_shape[-2]
         inputs = ivy.reshape(inputs, [-1] + list(inputs.shape[-2:]))
-        if v is None:
-            v = self.v
-        else:
-            v = Container(v)
         if hidden is None:
-            hidden = self._ntm_cell.get_start_state(inputs, inputs.shape[0], inputs.dtype, v=v.ntm)
+            hidden = self._ntm_cell.get_start_state(inputs, inputs.shape[0], inputs.dtype, v=self.v.ntm_cell)
         outputs = []
         for x in ivy.unstack(inputs, 1):
-            output, hidden = self._ntm_cell.forward(x, hidden, v=v)
+            output, hidden = self._ntm_cell(x, hidden)
             outputs.append(output)
         ret = ivy.stack(outputs, 1)
         return ivy.reshape(ret, batch_shape + [time_dim, -1])

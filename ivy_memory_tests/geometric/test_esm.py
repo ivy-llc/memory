@@ -68,12 +68,12 @@ def test_inference(with_args, dev_str, call):
     num_feature_channels = 3
     image_dims = [3, 3]
     esm = ESM()
-    esm.forward(_get_dummy_obs(batch_size, num_timesteps, num_cams, image_dims, num_feature_channels),
-                esm.empty_memory(batch_size, num_timesteps) if with_args else None,
-                batch_size=batch_size if with_args else None,
-                num_timesteps=num_timesteps if with_args else None,
-                num_cams=num_cams if with_args else None,
-                image_dims=image_dims if with_args else None)
+    esm(_get_dummy_obs(batch_size, num_timesteps, num_cams, image_dims, num_feature_channels),
+        esm.empty_memory(batch_size, num_timesteps) if with_args else None,
+        batch_size=batch_size if with_args else None,
+        num_timesteps=num_timesteps if with_args else None,
+        num_cams=num_cams if with_args else None,
+        image_dims=image_dims if with_args else None)
 
 
 def test_realtime_speed(dev_str, call):
@@ -97,8 +97,8 @@ def test_realtime_speed(dev_str, call):
     start_time = time.perf_counter()
     for i in range(50):
         obs = _get_dummy_obs(batch_size, num_timesteps, num_cams, image_dims, num_feature_channels, device)
-        memory = esm.forward(obs, memory, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
-                             image_dims=image_dims)
+        memory = esm(obs, memory, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
+                     image_dims=image_dims)
         memory_mean = memory.mean.numpy()
         assert memory_mean.shape == tuple([batch_size, num_timesteps] + omni_img_dims + [3 + num_feature_channels])
         assert memory_mean[0, 0, 0, 0, 0] == 0.

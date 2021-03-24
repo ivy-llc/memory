@@ -128,7 +128,6 @@ class Simulator(BaseSimulator):
             self._drone.set_orientation(np.array([0.]*3))
             self._default_camera.set_position(np.array([-1.218, 0.710, 3.026]))
             self._default_camera.set_orientation(np.array([2.642, 0.596, -0.800]))
-            inv_ext_mat = ivy.reshape(ivy.array(self._default_vision_sensor.get_matrix(), 'float32'), (3, 4))
 
             # make vision sensor child of drone
             vision_sensor = self._vision_sensors[0]
@@ -212,7 +211,7 @@ def main(interactive=True, try_use_sim=True, f=None):
             img_meas={'cam0': esm_cam_meas},
             agent_rel_mat=agent_rel_mat)
 
-        esm_mem = esm.forward(obs, esm_mem)
+        esm_mem = esm(obs, esm_mem)
 
         # update esm visualization
         if not interactive:

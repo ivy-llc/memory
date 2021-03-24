@@ -79,16 +79,17 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
 
     # test
     x = ivy.ones(batch_shape + [timesteps, input_dim])
-    assert call(ntm.forward, x).shape == tuple(batch_shape + [timesteps, output_dim])
+    assert call(ntm, x).shape == tuple(batch_shape + [timesteps, output_dim])
 
     # variables
     variables = dict()
+    variables['ntm_cell'] = dict()
     np.random.seed(0)
 
     # lstm
     in_wlim = (6 / (ctrl_input_size + 4 * ctrl_output_size)) ** 0.5
     rec_wlim = (6 / (ctrl_output_size + 4 * ctrl_output_size)) ** 0.5
-    variables['ctrl'] = \
+    variables['ntm_cell']['controller'] = \
         {'input': {'layer1': {'w': ivy.array(np.random.uniform(
             -in_wlim, in_wlim, size=[ctrl_input_size, 4 * ctrl_output_size]).astype(np.float32))},
                    'layer2': {'w': ivy.array(np.random.uniform(
@@ -101,31 +102,30 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
 
     # fully connected
     proj_wlim = (6 / (total_parameter_num + ctrl_output_size)) ** 0.5
-    variables['ctrl_proj'] = {'w': ivy.array(np.random.uniform(
+    variables['ntm_cell']['controller_proj'] = {'w': ivy.array(np.random.uniform(
         -proj_wlim, proj_wlim, size=[total_parameter_num, ctrl_output_size]).astype(np.float32)),
                               'b': ivy.zeros([total_parameter_num])}
 
     out_wlim = (6 / (total_parameter_num + ctrl_input_size)) ** 0.5
-    variables['out_proj'] = {'w': ivy.array(np.random.uniform(
+    variables['ntm_cell']['output_proj'] = {'w': ivy.array(np.random.uniform(
         -out_wlim, out_wlim, size=[output_dim, ctrl_output_size + read_head_num * memory_vector_dim]).astype(
         np.float32)),
                              'b': ivy.zeros([output_dim])}
 
     # memory
-    variables['ntm'] = dict()
     wlim = (6 / (2 * memory_vector_dim)) ** 0.5
-    variables['ntm']['read_weights'] = dict(zip(
+    variables['ntm_cell']['read_weights'] = dict(zip(
         ['w_' + str(i) for i in range(read_head_num)],
         [ivy.variable(ivy.array(np.random.uniform(-wlim, wlim, [memory_vector_dim, ]), 'float32'))
          for _ in range(read_head_num)]))
 
     wlim = (6 / (2 * memory_size)) ** 0.5
-    variables['ntm']['write_weights'] = dict(zip(
+    variables['ntm_cell']['write_weights'] = dict(zip(
         ['w_' + str(i) for i in range(read_head_num + write_head_num)],
         [ivy.variable(ivy.array(np.random.uniform(-wlim, wlim, [memory_size, ]), 'float32'))
          for _ in range(read_head_num + write_head_num)]))
 
-    variables['ntm']['memory'] = ivy.variable(ivy.ones([memory_size, memory_vector_dim]) * init_value)
+    variables['ntm_cell']['memory'] = ivy.variable(ivy.ones([memory_size, memory_vector_dim]) * init_value)
 
     # memory object w vars
     ntm = ivy_mem.NTM(
@@ -135,10 +135,10 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
         retroactive_updates=False, with_erase=False)
 
     # test
-    assert np.allclose(call(ntm.forward, x), td.ntm_return[addressing_mode], atol=1e-6)
+    assert np.allclose(call(ntm, x), td.ntm_return[addressing_mode], atol=1e-6)
 
     # compilation test
     if call is helpers.torch_call:
         # pytest scripting does not support try-catch statements
         return
-    helpers.assert_compilable(ntm.forward)
+    helpers.assert_compilable(ntm)
