@@ -17,7 +17,7 @@ def loss_fn(ntm, v, total_seq, target_seq, seq_len):
     return ivy.reduce_sum(ivy.binary_cross_entropy(pred_vals, target_seq))[0] / pred_vals.shape[0], pred_vals
 
 
-def train_step(loss_fn_in, ntm, total_seq, target_seq, seq_len, mw, vw, lr, step, max_grad_norm):
+def train_step(loss_fn_in, optimizer, ntm, total_seq, target_seq, seq_len, mw, vw, step, max_grad_norm):
     # compute loss
     loss, dldv, pred_vals = ivy.execute_with_gradients(
         lambda v_: loss_fn_in(v_, total_seq, target_seq, seq_len), ntm.v)
@@ -26,10 +26,8 @@ def train_step(loss_fn_in, ntm, total_seq, target_seq, seq_len, mw, vw, lr, step
     dldv = dldv.map(lambda x, _: x * max_grad_norm / ivy.maximum(global_norm, max_grad_norm))
 
     # update variables
-    mw = dldv if mw is None else mw
-    vw = dldv.map(lambda x, _: x ** 2) if vw is None else vw
-    ntm.v, mw, vw = ivy.adam_update(ntm.v, dldv, lr, mw, vw, step)
-    return loss, pred_vals, mw, vw
+    ntm.v = optimizer.step(ntm.v, dldv)
+    return loss, pred_vals
 
 
 def main(batch_size=32, num_train_steps=31250, compile_flag=True,
@@ -46,6 +44,9 @@ def main(batch_size=32, num_train_steps=31250, compile_flag=True,
 
     # logging config
     vis_freq = 250 if not overfit_flag else 1
+
+    # optimizer
+    optimizer = ivy.Adam(lr=lr)
 
     # ntm
     ntm = NTM(input_dim=num_bits + 1, output_dim=num_bits, ctrl_output_size=ctrl_output_size, ctrl_layers=1,
@@ -79,8 +80,8 @@ def main(batch_size=32, num_train_steps=31250, compile_flag=True,
         total_seq = ivy.concatenate((input_seq, eos, output_seq), -2)
 
         # train step
-        loss, pred_vals, mw, vw = train_step(
-            loss_fn_maybe_compiled, ntm, total_seq, target_seq, seq_len, mw, vw, lr,
+        loss, pred_vals = train_step(
+            loss_fn_maybe_compiled, optimizer, ntm, total_seq, target_seq, seq_len, mw, vw,
             ivy.array(i + 1, 'float32'), max_grad_norm)
 
         # log

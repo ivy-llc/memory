@@ -212,11 +212,14 @@ def main():
         pred = model.forward(esm_obs, var)
         return ivy.reduce_mean((pred - target) ** 2)
 
+    # optimizer
+    optimizer = ivy.SGD(lr=1e-4)
+
     # train model
     print('\ntraining dummy Ivy ESM model...\n')
     for i in range(10):
         loss, grads = ivy.execute_with_gradients(loss_fn, model.v)
-        model.v = ivy.gradient_descent_update(model.v, grads, 1e-4)
+        model.v = optimizer.step(model.v, grads)
         print('step {}, loss = {}'.format(i, ivy.to_numpy(loss).item()))
     print('\ndummy Ivy ESM model trained!\n')
     ivy.unset_framework()
