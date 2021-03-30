@@ -126,16 +126,6 @@ Run Through
 
 We run through some of the different parts of the library via a simple ongoing example script.
 The full script is available in the demos_ folder, as file ``run_through.py``.
-First, we select a random backend framework to use for the examples, from the options
-``ivy.jax``, ``ivy.tensorflow``, ``ivy.torch``, ``ivy.mxnd`` or ``ivy.numpy``,
-and use this to set the ivy backend framework.
-
-.. code-block:: python
-
-    import ivy
-    import ivy_memory as ivy_mem
-    from ivy_demo_utils.framework_utils import choose_random_framework
-    ivy.set_framework(choose_random_framework())
 
 **End-to-End Egospheric Spatial Memory**
 
@@ -144,20 +134,18 @@ We first define the model as below.
 
 .. code-block:: python
 
-    class IvyModel:
+    class IvyModelWithESM(ivy.Module):
 
         def __init__(self, channels_in, channels_out):
             self._channels_in = channels_in
             self._esm = ivy_mem.ESM(omni_image_dims=(16, 32))
             self._linear = ivy_mem.Linear(channels_in, channels_out)
-            self.v = self._linear.v
+            ivy.Module.__init__(self, 'cpu')
 
-        def forward(self, obs, v=None):
-            if v is None:
-                v = self.v
-            mem = self._esm.forward(obs)
+        def _forward(self, obs):
+            mem = self._esm(obs)
             x = ivy.reshape(mem.mean, (-1, self._channels_in))
-            return self._linear.forward(x, v)
+            return self._linear(x)
 
 Next, we instantiate this model, and verify that the returned tensors are of the expected shape.
 
@@ -167,70 +155,65 @@ Next, we instantiate this model, and verify that the returned tensors are of the
     in_channels = 32
     out_channels = 8
     ivy.set_framework('torch')
-    model = IvyModel(in_channels, out_channels)
+    model = IvyModelWithESM(in_channels, out_channels)
 
     # input config
     batch_size = 1
     image_dims = [5, 5]
-    num_frames = 2
+    num_timesteps = 2
     num_feature_channels = 3
 
     # create image of pixel co-ordinates
     uniform_pixel_coords =\
-        ivy_vision.create_uniform_pixel_coords_image(image_dims, [batch_size, num_frames])
+        ivy_vision.create_uniform_pixel_coords_image(image_dims, [batch_size, num_timesteps])
 
-    # define image measurement
-    img_mean = ivy.concatenate((uniform_pixel_coords[..., 0:2], ivy.random_uniform(
-        shape=[batch_size, num_frames] + image_dims + [1 + num_feature_channels])), -1)
-    img_var = ivy.random_uniform(shape=[batch_size, num_frames] + image_dims + [1 + num_feature_channels])
-    validity_mask = ivy.ones([batch_size, num_frames] + image_dims + [1])
-    pose_mean = ivy.random_uniform(shape=[batch_size, num_frames, 6])
-    pose_cov = ivy.random_uniform(shape=[batch_size, num_frames, 6, 6])
-    cam_rel_mat = ivy.identity(4, batch_shape=[batch_size, num_frames])[..., 0:3, :]
+    # define camera measurement
+    depths = ivy.random_uniform(shape=[batch_size, num_timesteps] + image_dims + [1])
+    pixel_coords = ivy_vision.depth_to_pixel_coords(depths)
+    inv_calib_mats = ivy.random_uniform(shape=[batch_size, num_timesteps, 3, 3])
+    cam_coords = ivy_vision.pixel_to_cam_coords(pixel_coords, inv_calib_mats)[..., 0:3]
+    features = ivy.random_uniform(shape=[batch_size, num_timesteps] + image_dims + [num_feature_channels])
+    img_mean = ivy.concatenate((cam_coords, features), -1)
+    cam_rel_mat = ivy.identity(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
 
-    # place these into an ESM image measurement container
-    esm_img_meas = ESMImageMeasurement(
+    # place these into an ESM camera measurement container
+    esm_cam_meas = ESMCamMeasurement(
         img_mean=img_mean,
-        img_var=img_var,
-        validity_mask=validity_mask,
-        pose_mean=pose_mean,
-        pose_cov=pose_cov,
         cam_rel_mat=cam_rel_mat
     )
 
     # define agent pose transformation
-    control_mean = ivy.random_uniform(shape=[batch_size, num_frames, 6])
-    control_cov = ivy.random_uniform(shape=[batch_size, num_frames, 6, 6])
-    agent_rel_mat = ivy.identity(4, batch_shape=[batch_size, num_frames])[..., 0:3, :]
+    agent_rel_mat = ivy.identity(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
 
     # collect together into an ESM observation container
     esm_obs = ESMObservation(
-        img_meas={'camera_0': esm_img_meas},
-        control_mean=control_mean,
-        control_cov=control_cov,
+        img_meas={'camera_0': esm_cam_meas},
         agent_rel_mat=agent_rel_mat
     )
 
     # call model and test output
-    output = model.forward(esm_obs)
+    output = model(esm_obs)
     assert output.shape[-1] == out_channels
 
-Finally, we define a dummy loss function, and show how the NTM can be trained using Ivy functions only.
+Finally, we define a dummy loss function, and show how the ESM network can be trained using Ivy functions only.
 
 .. code-block:: python
 
     # define loss function
     target = ivy.zeros_like(output)
 
-    def loss_fn(var):
-        pred = model.forward(esm_obs, var)
+    def loss_fn(v):
+        pred = model(esm_obs, v=v)
         return ivy.reduce_mean((pred - target) ** 2)
+
+    # optimizer
+    optimizer = ivy.SGD(lr=1e-4)
 
     # train model
     print('\ntraining dummy Ivy ESM model...\n')
     for i in range(10):
         loss, grads = ivy.execute_with_gradients(loss_fn, model.v)
-        model.v = ivy.gradient_descent_update(model.v, grads, 1e-4)
+        model.v = optimizer.step(model.v, grads)
         print('step {}, loss = {}'.format(i, ivy.to_numpy(loss).item()))
     print('\ndummy Ivy ESM model trained!\n')
     ivy.unset_framework()
@@ -242,7 +225,7 @@ First, we define the model as below.
 
 .. code-block:: python
 
-    class TfModel(tf.keras.Model):
+    class TfModelWithNTM(tf.keras.Model):
 
         def __init__(self, channels_in, channels_out):
             tf.keras.Model.__init__(self)
@@ -265,7 +248,7 @@ First, we define the model as below.
 
         def call(self, x, **kwargs):
             x = self._linear(x)
-            return self._ntm.forward(x)
+            return self._ntm(x)
 
 Next, we instantiate this model, and verify that the returned tensors are of the expected shape.
 
@@ -275,7 +258,7 @@ Next, we instantiate this model, and verify that the returned tensors are of the
     in_channels = 32
     out_channels = 8
     ivy.set_framework('tensorflow')
-    model = TfModel(in_channels, out_channels)
+    model = TfModelWithNTM(in_channels, out_channels)
 
     # define inputs
     batch_shape = [1, 2]

@@ -146,20 +146,18 @@ def main():
     # using the Ivy ESM memory module in a pure-Ivy model, with a JAX backend
     # ToDo: add pre-ESM conv layers to this demo
 
-    class IvyModelWithESM:
+    class IvyModelWithESM(ivy.Module):
 
         def __init__(self, channels_in, channels_out):
             self._channels_in = channels_in
             self._esm = ivy_mem.ESM(omni_image_dims=(16, 32))
             self._linear = ivy_mem.Linear(channels_in, channels_out)
-            self.v = self._linear.v
+            ivy.Module.__init__(self, 'cpu')
 
-        def forward(self, obs, v=None):
-            if v is None:
-                v = self.v
+        def _forward(self, obs):
             mem = self._esm(obs)
             x = ivy.reshape(mem.mean, (-1, self._channels_in))
-            return self._linear(x, v=v)
+            return self._linear(x)
 
     # create model
     in_channels = 32
@@ -202,14 +200,14 @@ def main():
     )
 
     # call model and test output
-    output = model.forward(esm_obs)
+    output = model(esm_obs)
     assert output.shape[-1] == out_channels
 
     # define loss function
     target = ivy.zeros_like(output)
 
-    def loss_fn(var):
-        pred = model.forward(esm_obs, var)
+    def loss_fn(v):
+        pred = model(esm_obs, v=v)
         return ivy.reduce_mean((pred - target) ** 2)
 
     # optimizer

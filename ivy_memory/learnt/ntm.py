@@ -62,22 +62,22 @@ class NTMCell(ivy.Module):
         self._with_erase = with_erase
 
         # variables
-        self._create_variables()
-        ivy.Module.__init__(self)
+        ivy.Module.__init__(self, 'cpu')
 
-    def _create_variables(self):
+    def _create_variables(self, dev_str):
         vars_dict = dict()
         wlim = (6 / (2 * self._memory_vector_dim)) ** 0.5
         vars_dict['read_weights'] =\
             dict(zip(['w_' + str(i) for i in range(self._read_head_num)],
-                     [ivy.variable(ivy.random_uniform(-wlim, wlim, [self._memory_vector_dim, ]))
+                     [ivy.variable(ivy.random_uniform(-wlim, wlim, [self._memory_vector_dim, ], dev_str=dev_str))
                       for _ in range(self._read_head_num)]))
         wlim = (6 / (2 * self._memory_size)) ** 0.5
         vars_dict['write_weights'] =\
             dict(zip(['w_' + str(i) for i in range(self._read_head_num + self._write_head_num)],
-                     [ivy.variable(ivy.random_uniform(-wlim, wlim, [self._memory_size, ]))
+                     [ivy.variable(ivy.random_uniform(-wlim, wlim, [self._memory_size, ], dev_str=dev_str))
                       for _ in range(self._read_head_num + self._write_head_num)]))
-        vars_dict['memory'] = ivy.variable(ivy.ones([self._memory_size, self._memory_vector_dim]) * self._init_value)
+        vars_dict['memory'] = ivy.variable(
+            ivy.ones([self._memory_size, self._memory_vector_dim], dev_str=dev_str) * self._init_value)
         return vars_dict
 
     def _addressing(self, k, beta, g, s, gamma, prev_M, prev_w):
@@ -257,10 +257,10 @@ class NTM(ivy.Module):
         ctrl = LSTM(ctrl_input_size, ctrl_output_size, ctrl_layers, v=ctrl_v)
         ctrl_proj_v = v.ntm_cell.controller_proj \
             if v is not None and 'ntm_cell' in v and 'controller_proj' in v.ntm_cell else None
-        ctrl_proj = Linear(ctrl_output_size, total_parameter_num, ctrl_proj_v)
+        ctrl_proj = Linear(ctrl_output_size, total_parameter_num, v=ctrl_proj_v)
         out_proj_v = v.ntm_cell.output_proj \
             if v is not None and 'ntm_cell' in v and 'output_proj' in v.ntm_cell else None
-        out_proj = Linear(ctrl_output_size + read_head_num * memory_vector_dim, output_dim, out_proj_v)
+        out_proj = Linear(ctrl_output_size + read_head_num * memory_vector_dim, output_dim, v=out_proj_v)
 
         ntm_v = v.ntm if v is not None and 'ntm' in v else None
         ntm_cell = NTMCell(ctrl, ctrl_proj, out_proj, output_dim, ctrl_input_size, ctrl_output_size,
@@ -268,7 +268,7 @@ class NTM(ivy.Module):
                            usage, addressing_mode, shift_range, clip_value, init_value, sequential_writing,
                            retroactive_updates, retroactive_discount, with_erase)
         self._ntm_cell = ntm_cell
-        ivy.Module.__init__(self, v=v)
+        ivy.Module.__init__(self, 'cpu', v=v)
 
     def _forward(self, inputs, hidden=None):
         inputs_shape = list(inputs.shape)

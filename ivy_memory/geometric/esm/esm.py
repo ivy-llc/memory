@@ -77,7 +77,7 @@ class ESM(ivy.Module):
         self._memory = None
 
         # variables
-        ivy.Module.__init__(self)
+        ivy.Module.__init__(self, 'cpu')
 
     # Helpers #
     # --------#
