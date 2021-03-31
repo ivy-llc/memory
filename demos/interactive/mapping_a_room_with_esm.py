@@ -58,8 +58,7 @@ class OfflineDrone:
 
 class OfflineDroneCam:
 
-    def __init__(self, mat_rel_to_drone):
-        self._mat_rel_to_drone = mat_rel_to_drone
+    def __init__(self):
         self.inv_calib_mat = ivy.array([[-0.015625, -0., 0.9921875],
                                         [-0., -0.015625, 0.9921875],
                                         [0., 0., 1.]])
@@ -75,7 +74,10 @@ class OfflineDroneCam:
 
     @property
     def mat_rel_to_drone(self):
-        return self._mat_rel_to_drone
+        return ivy.array(
+                [[1., 0., 0., 0.],
+                 [0., 1., 0., 0.],
+                 [0., 0., 1., 0.15]])
 
 
 # Classes for live demos #
@@ -101,13 +103,15 @@ class Drone:
 
 class DroneCam(SimCam):
 
-    def __init__(self, pyrep_handle, mat_rel_to_drone):
+    def __init__(self, pyrep_handle):
         super().__init__(pyrep_handle)
-        self._mat_rel_to_drone = mat_rel_to_drone
 
     @property
     def mat_rel_to_drone(self):
-        return self._mat_rel_to_drone
+        return ivy.array(
+                [[1., 0., 0., 0.],
+                 [0., 1., 0., 0.],
+                 [0., 0., 1., 0.15]])
 
 
 class Simulator(BaseSimulator):
@@ -125,21 +129,20 @@ class Simulator(BaseSimulator):
             [item.remove() for item in self._vision_sensor_rays[0]]
             drone_start_pos = np.array([0, 0, 1.5])
             self._drone.set_position(drone_start_pos)
-            self._drone.set_orientation(np.array([0.]*3))
             self._default_camera.set_position(np.array([-1.218, 0.710, 3.026]))
             self._default_camera.set_orientation(np.array([2.642, 0.596, -0.800]))
 
             # make vision sensor child of drone
             vision_sensor = self._vision_sensors[0]
             vision_sensor_body = self._vision_sensor_bodies[0]
-            vision_sensor_body.set_quaternion([0., (2**0.5)/2, 0., (2**0.5)/2])
+            vision_sensor_body.set_quaternion([0.5, 0.5, 0.5, 0.5])
             vision_sensor_body.set_position(self._drone.get_position())
             vision_sensor_body.set_position([0., 0., 0.15], vision_sensor_body)
             vision_sensor_body.set_parent(self._drone)
 
             # public drone
             cam_rel_to_mat = ivy.reshape(ivy.array(vision_sensor.get_matrix(self._drone)), (3, 4))
-            self.drone = Drone(self._drone, DroneCam(self._vision_sensors[0], cam_rel_to_mat))
+            self.drone = Drone(self._drone, DroneCam(self._vision_sensors[0]))
 
             # wait for user input
             self._user_prompt('\nInitialized scene with a drone in the centre.\n\n'
@@ -158,10 +161,7 @@ class Simulator(BaseSimulator):
 
         else:
 
-            self.drone = OfflineDrone(OfflineDroneCam(ivy.array(
-                [[0., 0., 1., 0.15],
-                 [0., 1., 0., 0.],
-                 [-1., 0., 0., 0.]])))
+            self.drone = OfflineDrone(OfflineDroneCam())
 
             # message
             print('\nInitialized dummy scene with a drone in the centre.'
@@ -217,23 +217,22 @@ def main(interactive=True, try_use_sim=True, f=None):
         if not interactive:
             continue
         rgb_img = _add_image_border(
-            cv2.resize(np.flip(np.transpose(ivy.to_numpy(rgb), (1, 0, 2)), 0).copy(), (180, 180)))
+            cv2.resize(ivy.to_numpy(rgb).copy(), (180, 180)))
         rgb_img = _add_title(rgb_img, 25, 75, 2, 'raw rgb', 70)
-        depth_img = _add_image_border(cv2.resize(np.flip(np.transpose(np.clip(
-            np.tile(ivy.to_numpy(depth), (1, 1, 3))/3, 0, 1), (1, 0, 2)), 0).copy(), (180, 180)))
+        depth_img = _add_image_border(cv2.resize(np.clip(
+            np.tile(ivy.to_numpy(depth), (1, 1, 3))/3, 0, 1).copy(), (180, 180)))
         depth_img = _add_title(depth_img, 25, 90, 2, 'raw depth', 85)
         raw_img_concatted = np.concatenate((rgb_img, depth_img), 0)
-        esm_feat = _add_image_border(np.flip(np.clip(ivy.to_numpy(esm_mem.mean[0, 0, ..., 3:]), 0, 1), 1).copy())
+        esm_feat = _add_image_border(np.clip(ivy.to_numpy(esm_mem.mean[0, 0, ..., 3:]), 0, 1).copy())
         esm_feat = _add_title(esm_feat, 25, 80, 2, 'esm rgb', 75)
-        esm_depth = _add_image_border(np.flip(np.clip(np.tile(ivy.to_numpy(esm_mem.mean[0, 0, ..., 2:3])/3,
-                                                              (1, 1, 3)), 0, 1), 1).copy())
+        esm_depth = _add_image_border(np.clip(np.tile(ivy.to_numpy(esm_mem.mean[0, 0, ..., 2:3])/3,
+                                                      (1, 1, 3)), 0, 1).copy())
         esm_depth = _add_title(esm_depth, 25, 95, 2, 'esm depth', 90)
         esm_img_concatted = np.concatenate((esm_feat, esm_depth), 0)
         img_to_show = np.concatenate((raw_img_concatted, esm_img_concatted), 1)
         plt.imshow(img_to_show)
         plt.show(block=False)
         plt.pause(0.001)
-        plt.imsave('vid_img_{}.png'.format(str(_).zfill(2)), np.clip(img_to_show, 0, 1))
 
     # end of demo
     sim.close()
