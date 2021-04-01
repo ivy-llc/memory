@@ -6,6 +6,7 @@ Collection of simple tests for ESM module
 import ivy
 import time
 import pytest
+import ivy_mech
 import ivy_vision
 import numpy as np
 import ivy_tests.helpers as helpers
@@ -18,29 +19,49 @@ from ivy_memory.geometric.esm.esm import ESM
 # Helpers #
 # --------#
 
-def _get_dummy_obs(batch_size, num_frames, num_cams, image_dims, num_feature_channels, dev_str='cpu'):
+def _get_dummy_obs(batch_size, num_frames, num_cams, image_dims, num_feature_channels, dev_str='cpu', ones=False,
+                   empty=False):
 
     uniform_pixel_coords =\
         ivy_vision.create_uniform_pixel_coords_image(image_dims, [batch_size, num_frames], dev_str=dev_str)
 
     img_meas = dict()
     for i in range(num_cams):
+        validity_mask = ivy.ones([batch_size, num_frames] + image_dims + [1], dev_str=dev_str)
+        if ones:
+            img_mean = ivy.concatenate((uniform_pixel_coords[..., 0:2], ivy.ones(
+                [batch_size, num_frames] + image_dims + [1 + num_feature_channels], dev_str=dev_str)), -1)
+            img_var = ivy.ones(
+                     [batch_size, num_frames] + image_dims + [3 + num_feature_channels], dev_str=dev_str)*1e-3
+            pose_mean = ivy.zeros([batch_size, num_frames, 6], dev_str=dev_str)
+            pose_cov = ivy.ones([batch_size, num_frames, 6, 6], dev_str=dev_str)*1e-3
+        else:
+            img_mean = ivy.concatenate((uniform_pixel_coords[..., 0:2], ivy.random_uniform(
+                1e-3, 1, [batch_size, num_frames] + image_dims + [1 + num_feature_channels], dev_str=dev_str)), -1)
+            img_var = ivy.random_uniform(
+                     1e-3, 1, [batch_size, num_frames] + image_dims + [3 + num_feature_channels], dev_str=dev_str)
+            pose_mean = ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6], dev_str=dev_str)
+            pose_cov = ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6, 6], dev_str=dev_str)
+        if empty:
+            img_var = ivy.ones_like(img_var) * 1e12
+            validity_mask = ivy.zeros_like(validity_mask)
         img_meas['dummy_cam_{}'.format(i)] =\
-            {'img_mean':
-                 ivy.concatenate((uniform_pixel_coords[..., 0:2], ivy.random_uniform(
-                     1e-3, 1, [batch_size, num_frames] + image_dims + [1 + num_feature_channels],
-                     dev_str)), -1),
-             'img_var':
-                 ivy.random_uniform(
-                     1e-3, 1, [batch_size, num_frames] + image_dims + [1 + num_feature_channels], dev_str),
-             'validity_mask': ivy.ones([batch_size, num_frames] + image_dims + [1], dev_str=dev_str),
-             'pose_mean': ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6], dev_str),
-             'pose_cov': ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6, 6], dev_str),
+            {'img_mean': img_mean,
+             'img_var': img_var,
+             'validity_mask': validity_mask,
+             'pose_mean': pose_mean,
+             'pose_cov': pose_cov,
              'cam_rel_mat': ivy.identity(4, batch_shape=[batch_size, num_frames], dev_str=dev_str)[..., 0:3, :]}
 
+    if ones:
+        control_mean = ivy.zeros([batch_size, num_frames, 6], dev_str=dev_str)
+        control_cov = ivy.ones([batch_size, num_frames, 6, 6], dev_str=dev_str)*1e-3
+    else:
+        control_mean = ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6], dev_str=dev_str)
+        control_cov = ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6, 6], dev_str=dev_str)
     return Container({'img_meas': img_meas,
-                      'control_mean': ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6], dev_str),
-                      'control_cov': ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6, 6], dev_str),
+                      'control_mean': control_mean,
+                      'control_cov': control_cov,
                       'agent_rel_mat': ivy.identity(4, batch_shape=[batch_size, num_frames],
                                                     dev_str=dev_str)[..., 0:3, :]})
 
@@ -61,6 +82,8 @@ def test_inference(with_args, dev_str, call):
     if call in [helpers.np_call, helpers.jnp_call, helpers.mx_call]:
         # convolutions not yet implemented in numpy or jax
         # mxnet is unable to stack or expand zero-dimensional tensors
+        pytest.skip()
+    if call is not helpers.tf_call:
         pytest.skip()
     batch_size = 5
     num_timesteps = 6
@@ -106,3 +129,31 @@ def test_realtime_speed(dev_str, call):
     end_time = time.perf_counter()
     time_taken = end_time - start_time
     assert time_taken < 5.
+
+
+def test_incremental_rotation(dev_str, call):
+    if call in [helpers.np_call, helpers.jnp_call, helpers.mx_call]:
+        # convolutions not yet implemented in numpy or jax
+        # mxnet is unable to stack or expand zero-dimensional tensors
+        pytest.skip()
+    batch_size = 1
+    num_timesteps = 1
+    num_cams = 1
+    num_feature_channels = 3
+    image_dims = [3, 3]
+    esm = ESM(omni_image_dims=[10, 20], smooth_mean=False)
+    empty_memory = esm.empty_memory(batch_size, num_timesteps)
+    empty_obs = _get_dummy_obs(batch_size, num_timesteps, num_cams, image_dims, num_feature_channels, empty=True)
+    rel_rot_vec_pose = ivy.array([[[0., 0., 0., 0., 0.1, 0.]]])
+    empty_obs['control_mean'] = rel_rot_vec_pose
+    empty_obs['agent_rel_mat'] = ivy_mech.rot_vec_pose_to_mat_pose(rel_rot_vec_pose)
+
+    first_obs = _get_dummy_obs(batch_size, num_timesteps, num_cams, image_dims, num_feature_channels, ones=True)
+    memory_1 = esm(first_obs, empty_memory, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
+                   image_dims=image_dims)
+    memory_2 = esm(empty_obs, memory_1, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
+                   image_dims=image_dims)
+    memory_3 = esm(empty_obs, memory_2, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
+                   image_dims=image_dims)
+
+    assert not np.allclose(memory_1.mean, memory_3.mean)

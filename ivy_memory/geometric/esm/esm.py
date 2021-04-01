@@ -39,13 +39,17 @@ class ESM(ivy.Module):
         self._max_depth = ivy.array(depth_limits[1], dev_str=self._dev)
 
         # variance clipping
+        ang_pix_var_limits = (1e-3, float(omni_image_dims[0]))
+        self._min_ang_pix_var = ivy.array(ang_pix_var_limits[0], dev_str=self._dev)
         self._min_depth_var = ivy.array(depth_var_limits[0], dev_str=self._dev)
         self._min_feat_var = ivy.array(feat_var_limits[0], dev_str=self._dev)
 
+        self._ang_pix_prior_var_val = ivy.array(ang_pix_var_limits[1], dev_str=self._dev)
         self._depth_prior_var_val = ivy.array(depth_var_limits[1], dev_str=self._dev)
         self._feat_prior_var_val = ivy.array(feat_var_limits[1], dev_str=self._dev)
 
         self._threshold_var_factor = ivy.array(threshold_var_factor, dev_str=self._dev)
+        self._ang_pix_var_threshold = ivy.array(ang_pix_var_limits[1] * self._threshold_var_factor, dev_str=self._dev)
         self._depth_var_threshold = ivy.array(depth_var_limits[1] * self._threshold_var_factor, dev_str=self._dev)
         self._feat_var_threshold = ivy.array(feat_var_limits[1] * self._threshold_var_factor, dev_str=self._dev)
 
@@ -144,14 +148,14 @@ class ESM(ivy.Module):
         :param cam_coords_f1: Camera co-ordinates to project *[batch_size, n, c, h_in, w_in, 3]*
         :param cam_feat_f1: Mean feature values to project *[batch_size, n, c, h_in, w_in, f]*
         :param rel_pose_covs: Pose covariances *[batch_size, n, c, 6, 6]*
-        :param image_var_f1: Radius and feature variance values to project *[batch_size, n, c, h_in, w_in, 1+f]*
+        :param image_var_f1: Angular pixel, radius and feature variance values to project *[batch_size, n, c, h_in, w_in, 3+f]*
         :param holes_prior: Prior values for holes which arise during the projection *[batch_size, n, h, w, 3+f]*
         :param holes_prior_var: Prior variance for holes which arise during the projection *[batch_size, n, h, w, 3+f]*
         :param batch_size: Size of batch
         :param num_timesteps: Number of timesteps
         :param num_cams: Number of cameras
         :param image_dims: Image dimensions
-        :return: Projected mean *[batch_size, 1, h, w, 3+f]* and variance *[batch_size, 1, h, w, 1+f]*
+        :return: Projected mean *[batch_size, 1, h, w, 3+f]* and variance *[batch_size, 1, h, w, 3+f]*
         """
 
         # cam 1 to cam 2 coords
@@ -184,13 +188,13 @@ class ESM(ivy.Module):
             ivy.reshape(projected_sphere_coords_f2,
                         [batch_size, num_timesteps, num_cams * image_dims[0] * image_dims[1], -1])
 
-        # B x N x (CxHxW) x (1+F)
+        # B x N x (CxHxW) x (3+F)
         image_var_f2_flat = ivy.reshape(image_var_f2,
                                         [batch_size, num_timesteps, num_cams * image_dims[0] * image_dims[1], -1])
 
         # quantized result from all scene cameras
 
-        # B x N x OH x OW x (3+F)   # B x N x OH x OW x (1+F)
+        # B x N x OH x OW x (3+F)   # B x N x OH x OW x (3+F)
         return ivy_vision.quantize_pixel_coords(projected_sphere_coords_f2_flat, holes_prior, self._sphere_img_dims,
                                                 'omni', self._with_depth_buffer, image_var_f2_flat, holes_prior_var,
                                                 self._var_threshold, uniform_sphere_pixel_coords,
@@ -209,12 +213,12 @@ class ESM(ivy.Module):
         :param sphere_depth_f1: Mean radius values to project *[batch_size, h, w, 1]*
         :param sphere_feat_f1: Mean feature values to project *[batch_size, h, w, 3]*
         :param agent_rel_pose_cov: Agent relative pose covariance *[batch_size, 6, 6]*
-        :param image_var_f1: Radius and feature variance values to project *[batch_size, h, w, 1+f]*
+        :param image_var_f1: Angular pixels, radius and feature variance values to project *[batch_size, h, w, 3+f]*
         :param holes_prior: Prior values for holes which arise during the projection *[batch_size, h, w, 1+f]*
         :param holes_prior_var: Prior variance for holes which arise during the projection
-                                *[batch_size, h, w, 1+f]*
+                                *[batch_size, h, w, 3+f]*
         :param batch_size: Size of batch
-        :return: Projected mean *[batch_size, h, w, 3+f]* and variance *[batch_size, h, w, 1+f]*
+        :return: Projected mean *[batch_size, h, w, 3+f]* and variance *[batch_size, h, w, 3+f]*
         """
 
         # Frame 1 #
@@ -259,14 +263,14 @@ class ESM(ivy.Module):
                                                           self._sphere_img_dims[0] * self._sphere_img_dims[1]]
                                                       + [3 + self._feat_dim])
 
-        # B x (OHxOW) x (1+F)
+        # B x (OHxOW) x (3+F)
         image_var_f2_flat = ivy.reshape(image_var_f2,
                                         [batch_size] + [self._sphere_img_dims[0] * self._sphere_img_dims[1]]
-                                        + [1 + self._feat_dim])
+                                        + [3 + self._feat_dim])
 
         # quantize the projection
 
-        # B x OH x OW x (3+F)    B x OH x OW x (1+F)
+        # B x OH x OW x (3+F)    B x OH x OW x (3+F)
         return ivy_vision.quantize_pixel_coords(
             projected_sphere_coords_f2_flat, holes_prior, self._sphere_img_dims, 'omni', self._with_depth_buffer,
             image_var_f2_flat, holes_prior_var, self._var_threshold[:, 0], uniform_sphere_pixel_coords, (batch_size,)
@@ -287,7 +291,7 @@ class ESM(ivy.Module):
         :param num_timesteps: Number of frames
         :param num_cams: Number of cameras
         :param image_dims: Image dimensions
-        :return: *[batch_size, n, oh, ow, 3+f]*    *[batch_size, n, oh, ow, 1+f]*
+        :return: *[batch_size, n, oh, ow, 3+f]*    *[batch_size, n, oh, ow, 3+f]*
         """
 
         # coords from all scene cameras wrt world
@@ -303,7 +307,7 @@ class ESM(ivy.Module):
                 # B x N x 1 x H x W x (3+f)
                 images_list.append(ivy.expand_dims(item, 2))
             elif key == 'img_var':
-                # B x N x 1 x H x W x (1+f)
+                # B x N x 1 x H x W x (3+f)
                 images_var_list.append(ivy.expand_dims(item, 2))
             elif key == 'pose_mean':
                 # B x N x 1 x 6
@@ -322,7 +326,7 @@ class ESM(ivy.Module):
         # B x N x C x H x W x (3+f)
         images = ivy.concatenate(images_list, 2)
 
-        # B x N x C x H x W x (1+f)
+        # B x N x C x H x W x (3+f)
         var_to_project = ivy.concatenate(images_var_list, 2)
 
         # B x N x C x 6
@@ -337,8 +341,9 @@ class ESM(ivy.Module):
         # B x N x C x 1
         validity_masks = ivy.concatenate(validity_mask_list, 2) > 0
 
-        # B x N x OH x OW x (1+f)
-        holes_prior_var = ivy.ones_like(holes_prior, dev_str=self._dev) * 1e12
+        # B x N x OH x OW x (3+f)
+        holes_prior_var = ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [3 + self._feat_dim],
+                                   dev_str=self._dev) * 1e12
 
         # reset invalid regions to prior
 
@@ -346,11 +351,11 @@ class ESM(ivy.Module):
         images = ivy.where(validity_masks, images,
                            ivy.concatenate((images[..., 0:2], ivy.zeros_like(images[..., 2:], dev_str=self._dev)), -1))
 
-        # B x N x C x H x W x (1+f)
+        # B x N x C x H x W x (3+f)
         var_to_project = ivy.where(validity_masks, var_to_project,
                                    ivy.ones_like(var_to_project, dev_str=self._dev) * 1e12)
 
-        # B x N x OH x OW x (3+f)    # B x N x OH x OW x (1+f)
+        # B x N x OH x OW x (3+f)    # B x N x OH x OW x (3+f)
         return self._frame_to_omni_frame_projection(
             cam_to_cam_poses, cam_to_cam_mats, uniform_sphere_pixel_coords, images[..., 0:3], images[..., 3:],
             cam_to_cam_pose_covs, var_to_project, holes_prior, holes_prior_var, batch_size, num_timesteps, num_cams,
@@ -366,12 +371,12 @@ class ESM(ivy.Module):
         """
         Perform kalman filter on measurement sequence
 
-        :param prev_fused_val: Fused value from previous timestamp *[batch_size, oh, ow, (1+f)]*
-        :param prev_fused_variance: Fused variance from previous timestamp *[batch_size, oh, ow, (1+f)]*
+        :param prev_fused_val: Fused value from previous timestamp *[batch_size, oh, ow, (3+f)]*
+        :param prev_fused_variance: Fused variance from previous timestamp *[batch_size, oh, ow, (3+f)]*
         :param hole_prior: Prior for holes in quantization *[batch_size, oh, ow, (1+f)]*
-        :param hole_prior_var: Prior variance for holes in quantization *[batch_size, oh, ow, (1+f)]*
+        :param hole_prior_var: Prior variance for holes in quantization *[batch_size, oh, ow, (3+f)]*
         :param meas: Measurements *[batch_size, num_timesteps, oh, ow, (3+f)]*
-        :param meas_vars: Measurement variances *[batch_size, num_timesteps, oh, ow, (1+f)]*
+        :param meas_vars: Measurement variances *[batch_size, num_timesteps, oh, ow, (3+f)]*
         :param uniform_sphere_pixel_coords: Uniform sphere pixel co-ordinates *[batch_size, oh, ow, 3]*
         :param agent_rel_poses: Relative poses of agents to the previous step *[batch_size, num_timesteps, 6]*
         :param agent_rel_pose_covs: Agent relative pose covariances *[batch_size, num_timesteps, 6, 6]*
@@ -379,7 +384,7 @@ class ESM(ivy.Module):
                                 *[batch_size, num_timesteps, 3, 4]*
         :param batch_size: Size of batch
         :param num_timesteps: Number of frames
-        :return: list of *[batch_size, oh, ow, (3+f)]*,    list of *[batch_size, oh, ow, (1+f)]*
+        :return: list of *[batch_size, oh, ow, (3+f)]*,    list of *[batch_size, oh, ow, (3+f)]*
         """
 
         fused_list = list()
@@ -389,7 +394,7 @@ class ESM(ivy.Module):
             # project prior from previous frame #
             # ----------------------------------#
 
-            # B x OH x OW x (1+F)
+            # B x OH x OW x (3+F)
             prev_prior = prev_fused_val
             prev_prior_variance = prev_fused_variance
 
@@ -402,17 +407,15 @@ class ESM(ivy.Module):
             # B x 6 x 6
             agent_rel_pose_cov = agent_rel_pose_covs[:, i]
 
-            # B x OH x OW x (3+F)   B x OH x OW x (1+F)
+            # B x OH x OW x (3+F)   B x OH x OW x (3+F)
             fused_projected, fused_projected_variance = self._omni_frame_to_omni_frame_projection(
                 agent_rel_pose, agent_rel_mat, uniform_sphere_pixel_coords, prev_prior[..., 0:1],
                 prev_prior[..., 1:], agent_rel_pose_cov, prev_prior_variance, hole_prior, hole_prior_var, batch_size)
 
             # reset prior
 
-            # B x OH x OW x (1+F)
-            prior = fused_projected[..., 2:]
-
-            # B x OH x OW x (1+F)
+            # B x OH x OW x (3+F)
+            prior = fused_projected
             prior_var = fused_projected_variance
 
             # per-pixel fusion with measurements #
@@ -420,37 +423,37 @@ class ESM(ivy.Module):
 
             # extract slice for frame
 
-            # B x OH x OW x (1+F)
-            measurement = meas[:, i, ..., 2:]
+            # B x OH x OW x (3+F)
+            measurement = meas[:, i]
             measurement_variance = meas_vars[:, i]
 
             # fuse prior and measurement
 
-            # B x 2 x OH x OW x (1+F)
+            # B x 2 x OH x OW x (3+F)
             prior_and_meas = ivy.concatenate((ivy.expand_dims(prior, 1),
                                               ivy.expand_dims(measurement, 1)), 1)
             prior_and_meas_variance = ivy.concatenate((ivy.expand_dims(prior_var, 1),
                                                        ivy.expand_dims(measurement_variance, 1)), 1)
 
-            # B x OH x OW x (1+F)
+            # B x OH x OW x (3+F)
             low_var_mask = ivy.reduce_sum(ivy.cast(
                 prior_and_meas_variance < ivy.expand_dims(hole_prior_var, 1) * self._threshold_var_factor,
                 'int32'), 1) > 0
 
-            # B x 1 x OH x OW x (1+F)    B x 1 x OH x OW x (1+F)
+            # B x 1 x OH x OW x (3+F)    B x 1 x OH x OW x (3+F)
             fused_val_unsmoothed, fused_variance_unsmoothed = \
                 self._fuse_measurements_with_uncertainty(prior_and_meas, prior_and_meas_variance, 1)
 
-            # B x OH x OW x (1+F)
+            # B x OH x OW x (3+F)
             # This prevents accumulating certainty from duplicate re-projections from prior measurements
             fused_variance_unsmoothed = ivy.where(low_var_mask, fused_variance_unsmoothed[:, 0], hole_prior_var)
 
-            # B x OH x OW x (1+F)
+            # B x OH x OW x (3+F)
             fused_val = fused_val_unsmoothed[:, 0]
             fused_variance = fused_variance_unsmoothed
             low_var_mask = fused_variance < hole_prior_var
 
-            # B x OH x OW x (1+F)    B x OH x OW x (1+F)
+            # B x OH x OW x (3+F)    B x OH x OW x (3+F)
             fused_val, fused_variance = self.smooth(
                 fused_val, fused_variance, low_var_mask, self._smooth_mean, self._smooth_kernel_size,
                 True, True, batch_size, 1)
@@ -461,14 +464,14 @@ class ESM(ivy.Module):
             fused_val_full = ivy.concatenate((uniform_sphere_pixel_coords[..., 0:2], fused_val), -1)
             fused_list.append(ivy.concatenate((uniform_sphere_pixel_coords[..., 0:2], fused_val), -1))
 
-            # B x OH x OW x (1+F)
+            # B x OH x OW x (3+F)
             fused_variances_list.append(fused_variance)
 
             # update for next time step
             prev_fused_val = fused_val
             prev_fused_variance = fused_variance
 
-        # list of *[batch_size, oh, ow, (3+f)]*,    list of *[batch_size, oh, ow, (1+f)]*
+        # list of *[batch_size, oh, ow, (3+f)]*,    list of *[batch_size, oh, ow, (3+f)]*
         return fused_list, fused_variances_list
 
     # Public Functions #
@@ -486,6 +489,8 @@ class ESM(ivy.Module):
                 [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev)
                  * self._sphere_feat_prior_val], -1),
             'var': ivy.concatenate(
+                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [2], dev_str=self._dev)
+                 * self._ang_pix_prior_var_val] +
                 [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [1], dev_str=self._dev)
                  * self._depth_prior_var_val] +
                 [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev)
@@ -602,6 +607,10 @@ class ESM(ivy.Module):
         # holes prior variances #
         # ----------------------#
 
+        # B x N x OH x OW x 2
+        sphere_ang_pix_prior_var = \
+            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [2], dev_str=self._dev) * self._ang_pix_prior_var_val
+
         # B x N x OH x OW x 1
         sphere_depth_prior_var = \
             ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [1], dev_str=self._dev) * self._depth_prior_var_val
@@ -611,19 +620,24 @@ class ESM(ivy.Module):
             ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev) * \
             self._feat_prior_var_val
 
-        # B x N x OH x OW x (1+F)
-        holes_prior_var = ivy.concatenate([sphere_depth_prior_var] + [sphere_feat_prior_var], -1)
+        # B x N x OH x OW x (3+F)
+        holes_prior_var = ivy.concatenate([sphere_ang_pix_prior_var] +
+                                          [sphere_depth_prior_var] +
+                                          [sphere_feat_prior_var], -1)
 
         # variance threshold #
         # -------------------#
 
-        # B x N x (1+F) x 1
+        # B x N x (3+F) x 1
         var_threshold_min = ivy.tile(
-            ivy.reshape(ivy.stack([self._min_depth_var] + [self._min_feat_var] * self._feat_dim),
-                        [1, 1, 1 + self._feat_dim, 1]), [batch_size, num_timesteps, 1, 1])
-        var_threshold_max = ivy.tile(ivy.reshape(ivy.stack([self._depth_var_threshold] +
+            ivy.reshape(ivy.stack([self._min_ang_pix_var]*2 +
+                                  [self._min_depth_var] +
+                                  [self._min_feat_var] * self._feat_dim),
+                        [1, 1, 3 + self._feat_dim, 1]), [batch_size, num_timesteps, 1, 1])
+        var_threshold_max = ivy.tile(ivy.reshape(ivy.stack([self._ang_pix_var_threshold] * 2 +
+                                                           [self._depth_var_threshold] +
                                                            [self._feat_var_threshold] * self._feat_dim),
-                                                 [1, 1, 1 + self._feat_dim, 1]), [batch_size, num_timesteps, 1, 1])
+                                                 [1, 1, 3 + self._feat_dim, 1]), [batch_size, num_timesteps, 1, 1])
         self._var_threshold = ivy.concatenate((var_threshold_min, var_threshold_max), -1)
 
         # measurements #
@@ -633,24 +647,24 @@ class ESM(ivy.Module):
         uniform_sphere_pixel_coords = ivy_vision.create_uniform_pixel_coords_image(
             self._sphere_img_dims, (batch_size, num_timesteps), dev_str=self._dev)
 
-        # B x N x OH x OW x (3+F),    B x N x OH x OW x (1+F)
+        # B x N x OH x OW x (3+F),    B x N x OH x OW x (3+F)
         meas_means, meas_vars = self._convert_images_to_omni_observations(
             obs.img_meas, uniform_sphere_pixel_coords, holes_prior, batch_size, num_timesteps, num_cams, image_dims)
 
         # filtering #
         # ----------#
 
-        # list of B x OH x OW x (3+F),    list of B x OH x OW x (1+F)
+        # list of B x OH x OW x (3+F),    list of B x OH x OW x (3+F)
         fused_measurements_list, fused_variances_list = \
             self._kalman_filter_on_measurement_sequence(
-                prev_mem.mean[..., 2:], prev_mem.var, holes_prior[:, 0], holes_prior_var[:, 0],
+                prev_mem.mean, prev_mem.var, holes_prior[:, 0], holes_prior_var[:, 0],
                 meas_means, meas_vars, uniform_sphere_pixel_coords[:, 0], obs.control_mean, obs.control_cov,
                 obs.agent_rel_mat, batch_size, num_timesteps)
 
         # new variance #
         # -------------#
 
-        # B x N x OH x OW x (1+F)
+        # B x N x OH x OW x (3+F)
         fused_variance = ivy.concatenate([ivy.expand_dims(item, 1) for item in fused_variances_list], 1)
 
         # variance clipping
@@ -661,7 +675,7 @@ class ESM(ivy.Module):
         # B x N x OH x OW x 3
         fused_feat_variance = ivy.clip(fused_variance[..., 1:], self._min_feat_var, self._feat_prior_var_val)
 
-        # B x N x OH x OW x (1+F)
+        # B x N x OH x OW x (3+F)
         fused_variance = ivy.concatenate([fused_depth_variance] + [fused_feat_variance], -1)
 
         # new mean #
@@ -687,7 +701,7 @@ class ESM(ivy.Module):
         # update memory #
         # --------------#
 
-        # B x N x OH x OW x (3+F),    B x N x OH x OW x (1+F)
+        # B x N x OH x OW x (3+F),    B x N x OH x OW x (3+F)
         self._memory = ESMMemory(mean=fused_measurement, var=fused_variance)
 
         # return #
