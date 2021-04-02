@@ -83,8 +83,6 @@ def test_inference(with_args, dev_str, call):
         # convolutions not yet implemented in numpy or jax
         # mxnet is unable to stack or expand zero-dimensional tensors
         pytest.skip()
-    if call is not helpers.tf_call:
-        pytest.skip()
     batch_size = 5
     num_timesteps = 6
     num_cams = 7
@@ -103,9 +101,6 @@ def test_realtime_speed(dev_str, call):
     if call in [helpers.np_call, helpers.jnp_call, helpers.mx_call]:
         # convolutions not yet implemented in numpy or jax
         # mxnet is unable to stack or expand zero-dimensional tensors
-        pytest.skip()
-    if call is not helpers.torch_call:
-        # pytorch currently the only framework building correctly with gpu
         pytest.skip()
     ivy.seed(0)
     device = 'cpu'
@@ -128,7 +123,7 @@ def test_realtime_speed(dev_str, call):
         np.max(memory_mean)
     end_time = time.perf_counter()
     time_taken = end_time - start_time
-    assert time_taken < 5.
+    assert time_taken < 20.
 
 
 def test_incremental_rotation(dev_str, call):
