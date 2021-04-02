@@ -3,6 +3,7 @@ Collection of simple tests for ESM module
 """
 
 # global
+import os
 import ivy
 import time
 import pytest
@@ -152,3 +153,29 @@ def test_incremental_rotation(dev_str, call):
                    image_dims=image_dims)
 
     assert not np.allclose(memory_1.mean, memory_3.mean)
+
+
+def test_values(dev_str, call):
+    if call in [helpers.np_call, helpers.jnp_call, helpers.mx_call]:
+        # convolutions not yet implemented in numpy or jax
+        # mxnet is unable to stack or expand zero-dimensional tensors
+        pytest.skip()
+    device = 'cpu'
+    batch_size = 1
+    num_timesteps = 1
+    num_cams = 1
+    num_feature_channels = 3
+    image_dims = [128, 128]
+    omni_img_dims = [180, 360]
+    esm = ESM(omni_image_dims=omni_img_dims, device=device)
+    memory = esm.empty_memory(batch_size, num_timesteps)
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    for i in range(2):
+        obs = ivy.Container.from_disk(os.path.join(this_dir, 'test_data/obs_{}.hdf5'.format(i)))
+        obs['img_meas']['cam0']['img_var'] =\
+            ivy.concatenate((obs.img_meas.cam0.img_var[..., 0:2], obs.img_meas.cam0.img_var), -1)
+        memory = esm(obs, memory, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
+                     image_dims=image_dims)
+        expected_mem = ivy.Container.from_disk(os.path.join(this_dir, 'test_data/mem_{}.hdf5'.format(i)))
+        assert np.allclose(memory.mean[..., 2:], expected_mem.mean[..., 2:], atol=1e-4)
+        assert np.allclose(memory.var[..., 2:], expected_mem.var)
