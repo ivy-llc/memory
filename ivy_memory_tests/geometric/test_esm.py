@@ -172,10 +172,8 @@ def test_values(dev_str, call):
     this_dir = os.path.dirname(os.path.realpath(__file__))
     for i in range(2):
         obs = ivy.Container.from_disk(os.path.join(this_dir, 'test_data/obs_{}.hdf5'.format(i)))
-        obs['img_meas']['cam0']['img_var'] =\
-            ivy.concatenate((obs.img_meas.cam0.img_var[..., 0:2], obs.img_meas.cam0.img_var), -1)
         memory = esm(obs, memory, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
                      image_dims=image_dims)
         expected_mem = ivy.Container.from_disk(os.path.join(this_dir, 'test_data/mem_{}.hdf5'.format(i)))
-        assert np.allclose(memory.mean[..., 2:], expected_mem.mean[..., 2:], atol=1e-4)
-        assert np.allclose(memory.var[..., 2:], expected_mem.var)
+        assert np.allclose(memory.mean, expected_mem.mean, atol=1e-3)
+        assert np.allclose(memory.var, expected_mem.var)

@@ -463,8 +463,13 @@ class ESM(ivy.Module):
                 'int32'), 1) > 0
 
             # B x 1 x OH x OW x (3+F)    B x 1 x OH x OW x (3+F)
-            fused_val_unsmoothed, fused_variance_unsmoothed = \
-                self._fuse_measurements_with_uncertainty(prior_and_meas, prior_and_meas_variance, 1)
+            if self._with_depth_buffer:
+                fused_val_unsmoothed = ivy.reduce_min(prior_and_meas, 1, keepdims=True)
+                # ToDo: solve this variance correspondence properly, rather than assuming the most certain
+                fused_variance_unsmoothed = ivy.reduce_min(prior_and_meas_variance, 1, keepdims=True)
+            else:
+                fused_val_unsmoothed, fused_variance_unsmoothed = \
+                    self._fuse_measurements_with_uncertainty(prior_and_meas, prior_and_meas_variance, 1)
 
             # B x OH x OW x (3+F)
             # This prevents accumulating certainty from duplicate re-projections from prior measurements
