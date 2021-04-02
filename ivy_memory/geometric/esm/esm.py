@@ -16,6 +16,8 @@ class ESM(ivy.Module):
                  threshold_var_factor=0.99, depth_limits=(1e-3, 10.), depth_var_limits=(1e-3, 1e4),
                  feat_var_limits=(1e-3, 1e4), omni_image_dims=(180, 360), smooth_mean=True, depth_buffer=True,
                  stateful=False, device='cpu'):
+        # ToDo: make variance fully optional. If not specified,
+        #  then do not compute and scatter during function call for better efficiency.
 
         # ml framework and device
         self._dev = device

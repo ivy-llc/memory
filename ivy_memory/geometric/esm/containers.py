@@ -57,7 +57,7 @@ class ESMCamMeasurement(Container):
         self['img_mean'] = img_mean
         self['cam_rel_mat'] = cam_rel_mat
         if img_var is None:
-            img_var = ivy.zeros_like(img_mean[..., 2:])
+            img_var = ivy.zeros_like(img_mean)
         else:
             img_var = _pad_to_batch_n_time_dims(img_var, 5)
         self['img_var'] = img_var
@@ -178,7 +178,7 @@ class ESMMemory(Container):
         mean = _pad_to_batch_n_time_dims(mean, 5)
         self['mean'] = mean
         if var is None:
-            var = ivy.zeros_like(mean[..., 2:])
+            var = ivy.zeros_like(mean)
         else:
             var = _pad_to_batch_n_time_dims(var, 5)
         self['var'] = var

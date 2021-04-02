@@ -177,9 +177,9 @@ def main():
 
     # define camera measurement
     depths = ivy.random_uniform(shape=[batch_size, num_timesteps] + image_dims + [1])
-    pixel_coords = ivy_vision.depth_to_pixel_coords(depths)
+    ds_pixel_coords = ivy_vision.depth_to_ds_pixel_coords(depths)
     inv_calib_mats = ivy.random_uniform(shape=[batch_size, num_timesteps, 3, 3])
-    cam_coords = ivy_vision.pixel_to_cam_coords(pixel_coords, inv_calib_mats)[..., 0:3]
+    cam_coords = ivy_vision.ds_pixel_to_cam_coords(ds_pixel_coords, inv_calib_mats)[..., 0:3]
     features = ivy.random_uniform(shape=[batch_size, num_timesteps] + image_dims + [num_feature_channels])
     img_mean = ivy.concatenate((cam_coords, features), -1)
     cam_rel_mat = ivy.identity(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]

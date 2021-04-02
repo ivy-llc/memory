@@ -192,8 +192,8 @@ def main(interactive=True, try_use_sim=True, f=None):
         depth, rgb = drone.cam.cap()
 
         # convert to ESM format
-        pix_coords = ivy_vision.depth_to_pixel_coords(depth)
-        cam_coords = ivy_vision.pixel_to_cam_coords(pix_coords, drone.cam.inv_calib_mat)[..., 0:3]
+        ds_pix_coords = ivy_vision.depth_to_ds_pixel_coords(depth)
+        cam_coords = ivy_vision.ds_pixel_to_cam_coords(ds_pix_coords, drone.cam.inv_calib_mat)[..., 0:3]
         img_mean = ivy.concatenate((cam_coords, rgb), -1)
 
         # acquire pose measurements
