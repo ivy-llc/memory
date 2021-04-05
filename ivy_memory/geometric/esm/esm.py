@@ -464,7 +464,20 @@ class ESM(ivy.Module):
 
             # B x 1 x OH x OW x (3+F)    B x 1 x OH x OW x (3+F)
             if self._with_depth_buffer:
-                fused_val_unsmoothed = ivy.reduce_min(prior_and_meas, 1, keepdims=True)
+                # ToDo: make this more efficient
+                prior_low_var_mask = ivy.reduce_max(ivy.cast(
+                    prior_var >= hole_prior_var * self._threshold_var_factor, 'int32'), -1, keepdims=True) == 0
+                meas_low_var_mask = ivy.reduce_max(ivy.cast(
+                    measurement_variance >= hole_prior_var * self._threshold_var_factor, 'int32'), -1,
+                    keepdims=True) == 0
+                neiter_low_var_mask = ivy.logical_and(
+                    ivy.logical_not(prior_low_var_mask), ivy.logical_not(meas_low_var_mask))
+                prior_w_large = ivy.where(prior_low_var_mask, prior, ivy.ones_like(prior)*1e12)
+                meas_w_large = ivy.where(meas_low_var_mask, measurement, ivy.ones_like(measurement)*1e12)
+                prior_and_meas_w_large = ivy.concatenate((ivy.expand_dims(prior_w_large, 1),
+                                                          ivy.expand_dims(meas_w_large, 1)), 1)
+                fused_val_unsmoothed = ivy.reduce_min(prior_and_meas_w_large, 1, keepdims=True)
+                fused_val_unsmoothed = ivy.where(neiter_low_var_mask, prior, fused_val_unsmoothed)
                 # ToDo: solve this variance correspondence properly, rather than assuming the most certain
                 fused_variance_unsmoothed = ivy.reduce_min(prior_and_meas_variance, 1, keepdims=True)
             else:
