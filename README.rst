@@ -10,14 +10,11 @@
     <a href="https://pypi.org/project/ivy-memory">
         <img style="float: left; padding-right: 4px; padding-bottom: 4px;" src="https://badge.fury.io/py/ivy-memory.svg">
     </a>
-    <a href="https://www.apache.org/licenses/LICENSE-2.0">
-        <img style="float: left; padding-right: 4px; padding-bottom: 4px;" src="https://img.shields.io/pypi/l/ivy-memory">
-    </a>
     <a href="https://github.com/ivy-dl/memory/actions?query=workflow%3Adocs">
         <img style="float: left; padding-right: 4px; padding-bottom: 4px;" src="https://img.shields.io/github/workflow/status/ivy-dl/memory/docs?label=docs">
     </a>
     <a href="https://github.com/ivy-dl/memory/actions?query=workflow%3Anightly-tests">
-        <img style="float: left; padding-right: 4px; padding-bottom: 4px;" src="https://img.shields.io/github/workflow/status/ivy-dl/memory/nightly-tests?label=nightly">
+        <img style="float: left; padding-right: 4px; padding-bottom: 4px;" src="https://img.shields.io/github/workflow/status/ivy-dl/memory/nightly-tests?label=tests">
     </a>
     <a href="https://discord.gg/EN9YS3QW8w">
         <img style="float: left; padding-right: 4px; padding-bottom: 4px;" src="https://img.shields.io/discord/799879767196958751?color=blue&label=%20&logo=discord&logoColor=white">
