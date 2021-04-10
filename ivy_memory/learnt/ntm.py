@@ -9,7 +9,7 @@ import collections
 from ivy.core.container import Container
 
 # local
-from ivy.neural_net.layers import Linear, LSTM
+from ivy.neural_net_stateful.layers import Linear, LSTM
 
 
 NTMControllerState = collections.namedtuple('NTMControllerState',

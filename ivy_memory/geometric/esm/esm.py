@@ -19,17 +19,14 @@ class ESM(ivy.Module):
         # ToDo: make variance fully optional. If not specified,
         #  then do not compute and scatter during function call for better efficiency.
 
-        # ml framework and device
-        self._dev = device
-
         # features
         self._feat_dim = num_feature_channels
 
         # hole priors
         if depth_prior is None:
-            depth_prior = ivy.ones((1,), dev_str=self._dev) * 1e-2
+            depth_prior = ivy.ones((1,), dev_str=device) * 1e-2
         if feat_prior is None:
-            feat_prior = ivy.ones((num_feature_channels,), dev_str=self._dev) * 0.5
+            feat_prior = ivy.ones((num_feature_channels,), dev_str=device) * 0.5
         self._sphere_depth_prior_val = depth_prior
         self._sphere_feat_prior_val = feat_prior
 
@@ -37,23 +34,23 @@ class ESM(ivy.Module):
         self._sphere_feat_prior = None
 
         # value clipping
-        self._min_depth = ivy.array(depth_limits[0], dev_str=self._dev)
-        self._max_depth = ivy.array(depth_limits[1], dev_str=self._dev)
+        self._min_depth = ivy.array(depth_limits[0], dev_str=device)
+        self._max_depth = ivy.array(depth_limits[1], dev_str=device)
 
         # variance clipping
         ang_pix_var_limits = (1e-3, float(omni_image_dims[0]))
-        self._min_ang_pix_var = ivy.array(ang_pix_var_limits[0], dev_str=self._dev)
-        self._min_depth_var = ivy.array(depth_var_limits[0], dev_str=self._dev)
-        self._min_feat_var = ivy.array(feat_var_limits[0], dev_str=self._dev)
+        self._min_ang_pix_var = ivy.array(ang_pix_var_limits[0], dev_str=device)
+        self._min_depth_var = ivy.array(depth_var_limits[0], dev_str=device)
+        self._min_feat_var = ivy.array(feat_var_limits[0], dev_str=device)
 
-        self._ang_pix_prior_var_val = ivy.array(ang_pix_var_limits[1], dev_str=self._dev)
-        self._depth_prior_var_val = ivy.array(depth_var_limits[1], dev_str=self._dev)
-        self._feat_prior_var_val = ivy.array(feat_var_limits[1], dev_str=self._dev)
+        self._ang_pix_prior_var_val = ivy.array(ang_pix_var_limits[1], dev_str=device)
+        self._depth_prior_var_val = ivy.array(depth_var_limits[1], dev_str=device)
+        self._feat_prior_var_val = ivy.array(feat_var_limits[1], dev_str=device)
 
-        self._threshold_var_factor = ivy.array(threshold_var_factor, dev_str=self._dev)
-        self._ang_pix_var_threshold = ivy.array(ang_pix_var_limits[1] * self._threshold_var_factor, dev_str=self._dev)
-        self._depth_var_threshold = ivy.array(depth_var_limits[1] * self._threshold_var_factor, dev_str=self._dev)
-        self._feat_var_threshold = ivy.array(feat_var_limits[1] * self._threshold_var_factor, dev_str=self._dev)
+        self._threshold_var_factor = ivy.array(threshold_var_factor, dev_str=device)
+        self._ang_pix_var_threshold = ivy.array(ang_pix_var_limits[1] * self._threshold_var_factor, dev_str=device)
+        self._depth_var_threshold = ivy.array(depth_var_limits[1] * self._threshold_var_factor, dev_str=device)
+        self._feat_var_threshold = ivy.array(feat_var_limits[1] * self._threshold_var_factor, dev_str=device)
 
         # normalization
         self._depth_range = self._max_depth - self._min_depth
@@ -83,7 +80,7 @@ class ESM(ivy.Module):
         self._memory = None
 
         # variables
-        ivy.Module.__init__(self, 'cpu')
+        ivy.Module.__init__(self, device)
 
     # Helpers #
     # --------#
@@ -365,17 +362,17 @@ class ESM(ivy.Module):
 
         # B x N x OH x OW x (3+f)
         holes_prior_var = ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [3 + self._feat_dim],
-                                   dev_str=self._dev) * 1e12
+                                   dev_str=self._dev_str) * 1e12
 
         # reset invalid regions to prior
 
         # B x N x C x H x W x (3+f)
         images = ivy.where(validity_masks, images,
-                           ivy.concatenate((images[..., 0:2], ivy.zeros_like(images[..., 2:], dev_str=self._dev)), -1))
+                           ivy.concatenate((images[..., 0:2], ivy.zeros_like(images[..., 2:], dev_str=self._dev_str)), -1))
 
         # B x N x C x H x W x (3+f)
         var_to_project = ivy.where(validity_masks, var_to_project,
-                                   ivy.ones_like(var_to_project, dev_str=self._dev) * 1e12)
+                                   ivy.ones_like(var_to_project, dev_str=self._dev_str) * 1e12)
 
         # B x N x OH x OW x (3+f)    # B x N x OH x OW x (3+f)
         return self._frame_to_omni_frame_projection(
@@ -463,26 +460,10 @@ class ESM(ivy.Module):
                 'int32'), 1) > 0
 
             # B x 1 x OH x OW x (3+F)    B x 1 x OH x OW x (3+F)
-            if self._with_depth_buffer:
-                # ToDo: make this more efficient
-                prior_low_var_mask = ivy.reduce_max(ivy.cast(
-                    prior_var >= hole_prior_var * self._threshold_var_factor, 'int32'), -1, keepdims=True) == 0
-                meas_low_var_mask = ivy.reduce_max(ivy.cast(
-                    measurement_variance >= hole_prior_var * self._threshold_var_factor, 'int32'), -1,
-                    keepdims=True) == 0
-                neiter_low_var_mask = ivy.logical_and(
-                    ivy.logical_not(prior_low_var_mask), ivy.logical_not(meas_low_var_mask))
-                prior_w_large = ivy.where(prior_low_var_mask, prior, ivy.ones_like(prior)*1e12)
-                meas_w_large = ivy.where(meas_low_var_mask, measurement, ivy.ones_like(measurement)*1e12)
-                prior_and_meas_w_large = ivy.concatenate((ivy.expand_dims(prior_w_large, 1),
-                                                          ivy.expand_dims(meas_w_large, 1)), 1)
-                fused_val_unsmoothed = ivy.reduce_min(prior_and_meas_w_large, 1, keepdims=True)
-                fused_val_unsmoothed = ivy.where(neiter_low_var_mask, prior, fused_val_unsmoothed)
-                # ToDo: solve this variance correspondence properly, rather than assuming the most certain
-                fused_variance_unsmoothed = ivy.reduce_min(prior_and_meas_variance, 1, keepdims=True)
-            else:
-                fused_val_unsmoothed, fused_variance_unsmoothed = \
-                    self._fuse_measurements_with_uncertainty(prior_and_meas, prior_and_meas_variance, 1)
+            # ToDo: handle this properly once re-implemented with a single scatter operation only
+            #  currently depth values are fused even if these are clearly far apart
+            fused_val_unsmoothed, fused_variance_unsmoothed = \
+                self._fuse_measurements_with_uncertainty(prior_and_meas, prior_and_meas_variance, 1)
 
             # B x OH x OW x (3+F)
             # This prevents accumulating certainty from duplicate re-projections from prior measurements
@@ -519,20 +500,20 @@ class ESM(ivy.Module):
     def empty_memory(self, batch_size, timesteps):
         uniform_pixel_coords = \
             ivy_vision.create_uniform_pixel_coords_image(self._sphere_img_dims, [batch_size, timesteps],
-                                                         dev_str=self._dev)[..., 0:2]
+                                                         dev_str=self._dev_str)[..., 0:2]
         empty_memory = {
             'mean': ivy.concatenate(
                 [uniform_pixel_coords] +
-                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [1], dev_str=self._dev)
+                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [1], dev_str=self._dev_str)
                  * self._sphere_depth_prior_val] +
-                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev)
+                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev_str)
                  * self._sphere_feat_prior_val], -1),
             'var': ivy.concatenate(
-                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [2], dev_str=self._dev)
+                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [2], dev_str=self._dev_str)
                  * self._ang_pix_prior_var_val] +
-                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [1], dev_str=self._dev)
+                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [1], dev_str=self._dev_str)
                  * self._depth_prior_var_val] +
-                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev)
+                [ivy.ones([batch_size, timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev_str)
                  * self._feat_prior_var_val], -1)
         }
         return ESMMemory(**empty_memory)
@@ -560,7 +541,7 @@ class ESM(ivy.Module):
             if variance_mode:
                 smoothed_fused_val_flat, smoothed_fused_var_flat = \
                     ivy_vision.smooth_image_fom_var_image(fused_val_pad_flat, fused_var_pad_flat, smooth_kernel_size,
-                                                          ivy.array([1.] * (1 + self._feat_dim), dev_str=self._dev))
+                                                          ivy.array([1.] * (1 + self._feat_dim), dev_str=self._dev_str))
             else:
                 smoothed_fused_val_flat, smoothed_fused_var_flat = \
                     ivy_vision.weighted_image_smooth(fused_val_pad_flat, 1 - fused_var_pad_flat, smooth_kernel_size)
@@ -630,12 +611,12 @@ class ESM(ivy.Module):
 
         # B x N x OH x OW x 1
         self._sphere_depth_prior = \
-            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [1], dev_str=self._dev) * \
+            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [1], dev_str=self._dev_str) * \
             self._sphere_depth_prior_val
 
         # B x N x OH x OW x F
         self._sphere_feat_prior = \
-            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev) * \
+            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev_str) * \
             self._sphere_feat_prior_val
 
         # B x N x OH x OW x (1+F)
@@ -646,15 +627,15 @@ class ESM(ivy.Module):
 
         # B x N x OH x OW x 2
         sphere_ang_pix_prior_var = \
-            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [2], dev_str=self._dev) * self._ang_pix_prior_var_val
+            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [2], dev_str=self._dev_str) * self._ang_pix_prior_var_val
 
         # B x N x OH x OW x 1
         sphere_depth_prior_var = \
-            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [1], dev_str=self._dev) * self._depth_prior_var_val
+            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [1], dev_str=self._dev_str) * self._depth_prior_var_val
 
         # B x N x OH x OW x F
         sphere_feat_prior_var = \
-            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev) * \
+            ivy.ones([batch_size, num_timesteps] + self._sphere_img_dims + [self._feat_dim], dev_str=self._dev_str) * \
             self._feat_prior_var_val
 
         # B x N x OH x OW x (3+F)
@@ -682,7 +663,7 @@ class ESM(ivy.Module):
 
         # B x N x OH x OW x 3
         uniform_sphere_pixel_coords = ivy_vision.create_uniform_pixel_coords_image(
-            self._sphere_img_dims, (batch_size, num_timesteps), dev_str=self._dev)
+            self._sphere_img_dims, (batch_size, num_timesteps), dev_str=self._dev_str)
 
         # B x N x OH x OW x (3+F),    B x N x OH x OW x (3+F)
         meas_means, meas_vars = self._convert_images_to_omni_observations(

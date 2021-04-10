@@ -11,5 +11,4 @@ chkpt/
 saved_model/
 vis/
 *.png
-*.hdf5
 *.pkl
