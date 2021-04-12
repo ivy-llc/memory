@@ -17,11 +17,20 @@ from distutils.core import setup
 import setuptools
 
 setup(name='ivy-memory',
-      version='1.1.3',
-      description='End-to-end memory modules for deep learning developers, written in Ivy.\n'
-                  'Tested with Ivy 1.1.3',
+      version='1.1.4',
       author='Ivy Team',
       author_email='ivydl.team@gmail.com',
+      description='End-to-end memory modules for deep learning developers, written in Ivy.',
+      long_description="""# What is Ivy Memory?\n\nIvy memory provides differentiable memory modules, including learnt
+      modules such as Neural Turing Machines (NTM), but also parameter-free modules such as End-to-End Egospheric
+      Spatial Memory (ESM). Ivy currently supports Jax, TensorFlow, PyTorch, MXNet and Numpy.
+      Check out the [docs](https://ivy-dl.org/memory) for more info!""",
+      long_description_content_type='text/markdown',
+      url='https://ivy-dl.org/memory',
+      project_urls={
+            'Docs': 'https://ivy-dl.org/memory/',
+            'Source': 'https://github.com/ivy-dl/memory',
+      },
       packages=setuptools.find_packages(),
       install_requires=['ivy-core', 'ivy-mech', 'ivy-vision'],
       classifiers=['License :: OSI Approved :: Apache Software License'],
