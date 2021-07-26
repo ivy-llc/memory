@@ -254,7 +254,7 @@ class NTM(ivy.Module):
         total_parameter_num = num_parameters_per_head * num_heads + memory_vector_dim * 2 * write_head_num
         ctrl_v = v.ntm_cell.controller if \
             v is not None and 'ntm_cell' in v and 'controller' in v.ntm_cell else None
-        ctrl = LSTM(ctrl_input_size, ctrl_output_size, ctrl_layers, v=ctrl_v)
+        ctrl = LSTM(ctrl_input_size, ctrl_output_size, num_layers=ctrl_layers, v=ctrl_v)
         ctrl_proj_v = v.ntm_cell.controller_proj \
             if v is not None and 'ntm_cell' in v and 'controller_proj' in v.ntm_cell else None
         ctrl_proj = Linear(ctrl_output_size, total_parameter_num, v=ctrl_proj_v)

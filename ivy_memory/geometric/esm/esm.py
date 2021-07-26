@@ -600,11 +600,11 @@ class ESM(ivy.Module):
         # --------------------#
 
         if memory:
-            prev_mem = memory.slice((slice(None, None, None), -1))
+            prev_mem = memory[:, -1]
         elif self._stateful and self._memory is not None:
-            prev_mem = self._memory.slice((slice(None, None, None), -1))
+            prev_mem = self._memory[:, -1]
         else:
-            prev_mem = self.empty_memory(batch_size, 1).slice((slice(None, None, None), -1))
+            prev_mem = self.empty_memory(batch_size, 1)[:, -1]
 
         # holes prior #
         # ------------#

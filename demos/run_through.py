@@ -21,7 +21,7 @@ def main():
         def __init__(self, channels_in, channels_out):
             torch.nn.Module.__init__(self)
             self._linear = torch.nn.Linear(channels_in, 64)
-            self._lstm = ivy_mem.LSTM(64, channels_out, 2, return_state=False)
+            self._lstm = ivy_mem.LSTM(64, channels_out, num_layers=2, return_state=False)
             self._assign_variables()
 
         def _assign_variables(self):
