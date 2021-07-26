@@ -17,7 +17,7 @@ from distutils.core import setup
 import setuptools
 
 setup(name='ivy-memory',
-      version='1.1.4',
+      version='1.1.5',
       author='Ivy Team',
       author_email='ivydl.team@gmail.com',
       description='End-to-end memory modules for deep learning developers, written in Ivy.',
