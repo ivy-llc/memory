@@ -1,13 +1,10 @@
 # global
 import os
-import cv2
 import ivy
 import argparse
 import ivy_mech
-import ivy.numpy
 import ivy_vision
 import numpy as np
-import matplotlib.pyplot as plt
 from ivy.framework_handler import set_framework, unset_framework
 from ivy_demo_utils.ivy_scene.scene_utils import SimCam, BaseSimulator
 from ivy_demo_utils.framework_utils import choose_random_framework, get_framework_from_str
@@ -29,6 +26,7 @@ def _add_image_border(img):
 
 
 def _add_title(img, height, width, t, text, offset):
+    import cv2
     img[0:height, -width:] = 0
     img[t:height-t, -width+t:-t] = 255
     cv2.putText(img, text, (img.shape[1] - offset, height - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, tuple([0.] * 3), 1)
@@ -88,11 +86,11 @@ class Drone:
     def __init__(self, pyrep_handle, cam):
         self._handle = pyrep_handle
         self._inv_ext_mat_homo = ivy_mech.make_transformation_homogeneous(
-            ivy.reshape(ivy.array(self._handle.get_matrix()), (3, 4)))
+            ivy.array(self._handle.get_matrix()[0:3].tolist()))
         self.cam = cam
 
     def measure_incremental_mat(self):
-        inv_ext_mat = ivy.reshape(ivy.array(self._handle.get_matrix()), (3, 4))
+        inv_ext_mat = ivy.array(self._handle.get_matrix()[0:3].tolist())
         inv_ext_mat_homo = ivy_mech.make_transformation_homogeneous(inv_ext_mat)
         ext_mat_homo = ivy.inv(inv_ext_mat_homo)
         ext_mat = ext_mat_homo[0:3, :]
@@ -141,7 +139,7 @@ class Simulator(BaseSimulator):
             vision_sensor_body.set_parent(self._drone)
 
             # public drone
-            cam_rel_to_mat = ivy.reshape(ivy.array(vision_sensor.get_matrix(self._drone)), (3, 4))
+            cam_rel_to_mat = ivy.array(vision_sensor.get_matrix(self._drone)[0:3].tolist())
             self.drone = Drone(self._drone, DroneCam(self._vision_sensors[0]))
 
             # wait for user input
@@ -171,7 +169,7 @@ class Simulator(BaseSimulator):
 def main(interactive=True, try_use_sim=True, f=None):
 
     # setup framework
-    f = choose_random_framework() if f is None else f
+    f = choose_random_framework(excluded=['numpy', 'jax']) if f is None else f
     set_framework(f)
 
     # simulator and drone
@@ -216,6 +214,7 @@ def main(interactive=True, try_use_sim=True, f=None):
         # update esm visualization
         if not interactive:
             continue
+        import cv2
         rgb_img = _add_image_border(
             cv2.resize(ivy.to_numpy(rgb).copy(), (180, 180)))
         rgb_img = _add_title(rgb_img, 25, 75, 2, 'raw rgb', 70)
@@ -229,7 +228,8 @@ def main(interactive=True, try_use_sim=True, f=None):
                                                       (1, 1, 3)), 0, 1).copy())
         esm_depth = _add_title(esm_depth, 25, 95, 2, 'esm depth', 90)
         esm_img_concatted = np.concatenate((esm_feat, esm_depth), 0)
-        img_to_show = np.concatenate((raw_img_concatted, esm_img_concatted), 1)
+        img_to_show = np.clip(np.concatenate((raw_img_concatted, esm_img_concatted), 1), 0, 1)
+        import matplotlib.pyplot as plt
         plt.imshow(img_to_show)
         plt.show(block=False)
         plt.pause(0.001)
