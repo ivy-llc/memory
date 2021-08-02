@@ -3,7 +3,7 @@ import ivy
 import torch
 import ivy_vision
 import tensorflow as tf
-from ivy_memory.geometric.esm.containers import ESMCamMeasurement, ESMObservation
+from ivy_memory.geometric.containers import ESMCamMeasurement, ESMObservation
 
 # local
 import ivy_memory as ivy_mem

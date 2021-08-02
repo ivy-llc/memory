@@ -4,7 +4,7 @@ import ivy_mech
 import ivy_vision
 
 # local
-from ivy_memory.geometric.esm.containers import ESMObservation, ESMMemory
+from ivy_memory.geometric.containers import ESMObservation, ESMMemory
 
 MIN_DENOMINATOR = 1e-12
 

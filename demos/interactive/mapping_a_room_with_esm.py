@@ -11,7 +11,7 @@ from ivy_demo_utils.framework_utils import choose_random_framework, get_framewor
 
 # local
 import ivy_memory as ivy_mem
-from ivy_memory.geometric.esm.containers import ESMCamMeasurement, ESMObservation
+from ivy_memory.geometric.containers import ESMCamMeasurement, ESMObservation
 
 
 # Helpers #

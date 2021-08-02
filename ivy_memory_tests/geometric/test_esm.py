@@ -14,7 +14,7 @@ import ivy_tests.helpers as helpers
 from ivy.core.container import Container
 
 # local
-from ivy_memory.geometric.esm.esm import ESM
+from ivy_memory.geometric.esm import ESM
 
 
 # Helpers #
