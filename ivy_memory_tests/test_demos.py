@@ -31,8 +31,10 @@ def test_demo_ntm_copy(compile_flag, dev_str, f, call):
 
 
 @pytest.mark.parametrize(
+    "with_sim", [False])
+@pytest.mark.parametrize(
     "compile_flag", [True, False])
-def test_demo_esm(compile_flag, dev_str, f, call):
+def test_demo_esm(with_sim, compile_flag, dev_str, f, call):
     from demos.interactive.mapping_a_room_with_esm import main
     if call in [helpers.np_call, helpers.jnp_call, helpers.mx_call]:
         # convolutions not yet implemented in numpy or jax
@@ -41,7 +43,7 @@ def test_demo_esm(compile_flag, dev_str, f, call):
     if call in [helpers.tf_graph_call]:
         # test call function not used, so no need to use tf_graph_call
         pytest.skip()
-    main(False, False, f=f)
+    main(False, with_sim, f=f)
 
 
 def test_demo_run_through(dev_str, f, call):
