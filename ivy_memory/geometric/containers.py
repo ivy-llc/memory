@@ -58,58 +58,34 @@ class ESMCamMeasurement(Container):
         if dev_str is None:
             dev_str = ivy.dev_str(img_mean)
         img_mean = _pad_to_batch_n_time_dims(img_mean, 5)
-        self['img_mean'] = img_mean
+        cont = dict()
+        cont['img_mean'] = img_mean
         if cam_rel_mat is None:
             cam_rel_mat = ivy.identity(4, batch_shape=img_mean.shape[0:2], dev_str=dev_str)[..., 0:3, :]
         else:
             cam_rel_mat = _pad_to_batch_n_time_dims(cam_rel_mat, 4)
-        self['cam_rel_mat'] = cam_rel_mat
+        cont['cam_rel_mat'] = cam_rel_mat
         if img_var is None:
             img_var = ivy.zeros_like(img_mean, dev_str=dev_str)
         else:
             img_var = _pad_to_batch_n_time_dims(img_var, 5)
-        self['img_var'] = img_var
+        cont['img_var'] = img_var
         if validity_mask is None:
             validity_mask = ivy.ones_like(img_mean[..., 0:1], dev_str=dev_str)
         else:
             validity_mask = _pad_to_batch_n_time_dims(validity_mask, 5)
-        self['validity_mask'] = validity_mask
+        cont['validity_mask'] = validity_mask
         if pose_mean is None:
             pose_mean = ivy_mech.mat_pose_to_rot_vec_pose(cam_rel_mat)
         else:
             pose_mean = _pad_to_batch_n_time_dims(pose_mean, 3)
-        self['pose_mean'] = pose_mean
+        cont['pose_mean'] = pose_mean
         if pose_cov is None:
             pose_cov = ivy.tile(ivy.expand_dims(ivy.zeros_like(pose_mean, dev_str=dev_str), -1), (1, 1, 1, 6))
         else:
             pose_cov = _pad_to_batch_n_time_dims(pose_cov, 4)
-        self['pose_cov'] = pose_cov
-
-    # properties
-
-    @property
-    def img_mean(self):
-        return self['img_mean']
-
-    @property
-    def img_var(self):
-        return self['img_var']
-
-    @property
-    def validity_mask(self):
-        return self['validity_mask']
-
-    @property
-    def pose_mean(self):
-        return self['pose_mean']
-
-    @property
-    def pose_cov(self):
-        return self['pose_cov']
-
-    @property
-    def cam_rel_mat(self):
-        return self['cam_rel_mat']
+        cont['pose_cov'] = pose_cov
+        Container.__init__(self, cont)
 
 
 # noinspection PyMissingConstructor
@@ -138,39 +114,23 @@ class ESMObservation(Container):
         :param dev_str: Device string to use, default is to use img_mean.
         :type dev_str: str
         """
+        cont = dict()
         if dev_str is None:
             dev_str = ivy.dev_str(agent_rel_mat)
-        self['img_meas'] = Container(img_meas)
+        cont['img_meas'] = Container(img_meas)
         agent_rel_mat = _pad_to_batch_n_time_dims(agent_rel_mat, 4)
-        self['agent_rel_mat'] = agent_rel_mat
+        cont['agent_rel_mat'] = agent_rel_mat
         if control_mean is None:
             control_mean = ivy_mech.mat_pose_to_rot_vec_pose(agent_rel_mat)
         else:
             control_mean = _pad_to_batch_n_time_dims(control_mean, 3)
-        self['control_mean'] = control_mean
+        cont['control_mean'] = control_mean
         if control_cov is None:
             control_cov = ivy.tile(ivy.expand_dims(ivy.zeros_like(control_mean, dev_str=dev_str), -1), (1, 1, 1, 6))
         else:
             control_cov = _pad_to_batch_n_time_dims(control_cov, 4)
-        self['control_cov'] = control_cov
-
-    # properties
-
-    @property
-    def img_meas(self):
-        return self['img_meas']
-
-    @property
-    def control_mean(self):
-        return self['control_mean']
-
-    @property
-    def control_cov(self):
-        return self['control_cov']
-
-    @property
-    def agent_rel_mat(self):
-        return self['agent_rel_mat']
+        cont['control_cov'] = control_cov
+        Container.__init__(self, cont)
 
 
 # noinspection PyMissingConstructor
@@ -191,20 +151,12 @@ class ESMMemory(Container):
         :param dev_str: Device string to use, default is to use img_mean.
         :type dev_str: str
         """
+        cont = dict()
         mean = _pad_to_batch_n_time_dims(mean, 5)
-        self['mean'] = mean
+        cont['mean'] = mean
         if var is None:
             var = ivy.zeros_like(mean, dev_str=dev_str)
         else:
             var = _pad_to_batch_n_time_dims(var, 5)
-        self['var'] = var
-
-    # properties
-
-    @property
-    def mean(self):
-        return self['mean']
-
-    @property
-    def var(self):
-        return self['var']
+        cont['var'] = var
+        Container.__init__(self, cont)
