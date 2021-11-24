@@ -90,13 +90,13 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
     in_wlim = (6 / (ctrl_input_size + 4 * ctrl_output_size)) ** 0.5
     rec_wlim = (6 / (ctrl_output_size + 4 * ctrl_output_size)) ** 0.5
     variables['ntm_cell']['controller'] = \
-        {'input': {'layer1': {'w': ivy.array(np.random.uniform(
+        {'input': {'layer_0': {'w': ivy.array(np.random.uniform(
             -in_wlim, in_wlim, size=[ctrl_input_size, 4 * ctrl_output_size]).astype(np.float32))},
-                   'layer2': {'w': ivy.array(np.random.uniform(
+                   'layer_1': {'w': ivy.array(np.random.uniform(
                        -in_wlim, in_wlim, size=[ctrl_output_size, 4 * ctrl_output_size]).astype(np.float32))}},
-         'recurrent': {'layer1': {'w': ivy.array(np.random.uniform(
+         'recurrent': {'layer_0': {'w': ivy.array(np.random.uniform(
              -rec_wlim, rec_wlim, size=[ctrl_output_size, 4 * ctrl_output_size]).astype(np.float32))},
-                       'layer2': {'w': ivy.array(np.random.uniform(
+                       'layer_1': {'w': ivy.array(np.random.uniform(
                            -rec_wlim, rec_wlim, size=[ctrl_output_size, 4 * ctrl_output_size]).astype(
                            np.float32))}}}
 
