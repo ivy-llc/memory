@@ -26,6 +26,12 @@ RUN git clone https://github.com/ivy-dl/vision && \
     cat requirements.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
     python3 setup.py develop --no-deps
 
+# Install Ivy Memory
+RUN git clone https://github.com/ivy-dl/memory && \
+    cd memory && \
+    cat requirements.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
+    python3 setup.py develop --no-deps
+
 COPY requirements.txt /
 RUN cat requirements.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin
 
