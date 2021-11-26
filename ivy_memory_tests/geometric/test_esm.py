@@ -20,8 +20,10 @@ from ivy_memory.geometric.esm import ESM
 # Helpers #
 # --------#
 
-def _get_dummy_obs(batch_size, num_frames, num_cams, image_dims, num_feature_channels, dev_str='cpu', ones=False,
+def _get_dummy_obs(batch_size, num_frames, num_cams, image_dims, num_feature_channels, dev_str=None, ones=False,
                    empty=False):
+
+    dev_str = ivy.default_device(dev_str)
 
     uniform_pixel_coords =\
         ivy_vision.create_uniform_pixel_coords_image(image_dims, [batch_size, num_frames], dev_str=dev_str)
