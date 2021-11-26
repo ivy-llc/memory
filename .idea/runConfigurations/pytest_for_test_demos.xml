@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="pytest for test demos" type="tests" factoryName="py.test">
-    <module name="ivy_memory" />
+    <module name="memory" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <option name="SDK_HOME" value="" />
@@ -65,7 +65,7 @@
     <option name="_new_keywords" value="&quot;&quot;" />
     <option name="_new_parameters" value="&quot;&quot;" />
     <option name="_new_additionalArguments" value="&quot;&quot;" />
-    <option name="_new_target" value="&quot;ivy_memory_tests.test_demos&quot;" />
+    <option name="_new_target" value="&quot;ivy_memory_tests.test_ivy_memory_demos&quot;" />
     <option name="_new_targetType" value="&quot;PYTHON&quot;" />
     <method v="2" />
   </configuration>
