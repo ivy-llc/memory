@@ -24,7 +24,7 @@ For a local installation, first install the dependencies:
 ```bash
 cd ~/ivy_memory
 python3 -m pip install -r requirements.txt
-cd ~/ivy_memory/demos
+cd ~/ivy_memory/ivy_memory_demos
 python3 -m pip install -r requirements.txt
 ```
 
@@ -56,7 +56,7 @@ be run with python directly for local installations.
 For a basic run through the library:
 
 ```bash
-cd ~/ivy_memory/demos
+cd ~/ivy_memory/ivy_memory_demos
 ./run_demo.sh run_through
 ```
 
@@ -78,7 +78,7 @@ Predictions are visualized throughout training.
 To overfit to a single sequence, simply use the command line `--overfit` flag.
 
 ```bash
-cd ~/ivy_memory/demos
+cd ~/ivy_memory/ivy_memory_demos
 ./run_demo.sh interactive.learning_to_copy_with_ntm
 ```
 
@@ -95,7 +95,7 @@ In this demo, the user is able to interactively drag a drone with a single monoc
 The ESM memory module is used to incrementally map the geometry.
 
 ```bash
-cd ~/ivy_memory/demos
+cd ~/ivy_memory/ivy_memory_demos
 ./run_demo.sh interactive.mapping_a_room_with_esm
 ```
 
