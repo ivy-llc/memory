@@ -21,7 +21,7 @@
     </a>
     <br clear="all" />
 
-**End-to-end memory modules for deep learning developers, written in Ivy.**
+**End-to-end memory modules for machine learning developers, written in Ivy.**
 
 .. raw:: html
 
@@ -68,7 +68,7 @@ including learnt modules such as Neural Turing Machines (NTM),
 but also parameter-free modules such as End-to-End Egospheric Spatial Memory (ESM).
 Check out the docs_ for more info!
 
-The library is built on top of the Ivy deep learning framework.
+The library is built on top of the Ivy machine learning framework.
 This means all memory modules simultaneously support:
 Jax, Tensorflow, PyTorch, MXNet, and Numpy.
 
@@ -419,7 +419,7 @@ While this example only projects color values into the memory, arbitrary neural 
 Get Involed
 -----------
 
-We hope the memory classes in this library are useful to a wide range of deep learning developers.
+We hope the memory classes in this library are useful to a wide range of machine learning developers.
 However, there are many more areas of differentiable memory which could be covered by this library.
 
 If there are any particular functions or classes you feel are missing,
@@ -434,7 +434,7 @@ Citation
 ::
 
     @article{lenton2021ivy,
-      title={Ivy: Templated Deep Learning for Inter-Framework Portability},
+      title={Ivy: Unified Machine Learning for Inter-Framework Portability},
       author={Lenton, Daniel and Pardo, Fabio and Falck, Fabian and James, Stephen and Clark, Ronald},
       journal={arXiv preprint arXiv:2102.02886},
       year={2021}
