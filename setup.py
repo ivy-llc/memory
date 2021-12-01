@@ -98,7 +98,7 @@ long_description = '\n'.join(lines)
 
 
 setup(name='ivy-memory',
-      version='1.1.8',
+      version='1.1.9',
       author='Ivy Team',
       author_email='ivydl.team@gmail.com',
       description='End-to-end memory modules for machine learning developers, written in Ivy.',
