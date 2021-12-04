@@ -7,9 +7,9 @@ jobs:
       - name: Checkout 🛎️Ivy Memory
         uses: actions/checkout@v2
         with:
-          path: ivy_memory
+          path: memory
           persist-credentials: false
 
       - name: Run Tests
         run: |
-          docker run --rm -v `pwd`/ivy_memory:/ivy_memory ivydl/ivy-memory:latest python3 -m pytest ivy_memory_tests/
+          docker run --rm -v `pwd`/memory:/memory ivydl/ivy-memory:latest python3 -m pytest ivy_memory_tests/
