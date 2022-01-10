@@ -8,7 +8,7 @@ Running these demos is quick and simple.
 First, clone this repo:
 
 ```bash
-git clone https://github.com/ivy-dl/memory.git ~/ivy_memory
+git clone https://github.com/unifyai/memory.git ~/ivy_memory
 ```
 
 The interactive demos optionally make use of the simulator
@@ -60,7 +60,7 @@ cd ~/ivy_memory/ivy_memory_demos
 ./run_demo.sh run_through
 ```
 
-This script, and the various parts of the library, are further discussed in the [Run Through](https://github.com/ivy-dl/memory#run-through) section of the main README.
+This script, and the various parts of the library, are further discussed in the [Run Through](https://github.com/unifyai/memory#run-through) section of the main README.
 We advise following along with this section for maximum effect. The demo script should also be opened locally,
 and breakpoints added to step in at intermediate points to further explore.
 
@@ -86,7 +86,7 @@ An example of overfitting on copying a single sequence,
 with real-time training speed, is given below:
 
 <p align="center">
-    <img width="75%" style="display: block;" src='https://github.com/ivy-dl/ivy-dl.github.io/blob/master/img/externally_linked/ivy_memory/demo_a.gif?raw=true'>
+    <img width="75%" style="display: block;" src='https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/ivy_memory/demo_a.gif?raw=true'>
 </p>
 
 ### Mapping a Room with ESM
@@ -105,10 +105,10 @@ and the incrementally constructed omni-directional ESM feature and depth images 
 While this example only projects color values into the memory, arbitrary neural network features can also be projected, for end-to-end training.
 
 <p align="center">
-    <img width="75%" style="display: block;" src='https://github.com/ivy-dl/ivy-dl.github.io/blob/master/img/externally_linked/ivy_memory/demo_b.gif?raw=true'>
+    <img width="75%" style="display: block;" src='https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/ivy_memory/demo_b.gif?raw=true'>
 </p>
 
 ## Get Involved
 
 If you have any issues running any of the demos, would like to request further demos, or would like to implement your own, then get it touch.
-Feature requests, pull requests, and [tweets](https://twitter.com/ivythread) all **welcome**!
+Feature requests, pull requests, and [tweets](https://twitter.com/unify_ai) all **welcome**!
