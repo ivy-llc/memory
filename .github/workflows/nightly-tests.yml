@@ -12,4 +12,4 @@ jobs:
 
       - name: Run Tests
         run: |
-          docker run --rm -v `pwd`/memory:/memory ivydl/ivy-memory:latest python3 -m pytest ivy_memory_tests/
+          docker run --rm -v `pwd`/memory:/memory unifyai/ivy-memory:latest python3 -m pytest ivy_memory_tests/

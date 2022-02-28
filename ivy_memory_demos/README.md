@@ -37,7 +37,7 @@ For a docker installation, first ensure [docker](https://docs.docker.com/get-doc
 Then simply pull the ivy memory image:
 
 ```bash
-docker pull ivydl/ivy-memory:latest
+docker pull unifyai/ivy-memory:latest
 ```
 
 ## Demos
