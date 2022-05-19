@@ -11,7 +11,6 @@ MIN_DENOMINATOR = 1e-12
 
 # noinspection PyUnboundLocalVariable
 class ESM(ivy.Module):
-    """ """
 
     def __init__(self, depth_prior=None, feat_prior=None, num_feature_channels=3,
                  smooth_kernel_size=25,
