@@ -1,6 +1,4 @@
-"""
-Implementation of Neural Turing Machine
-"""
+"""Implementation of Neural Turing Machine"""
 
 # global
 import ivy

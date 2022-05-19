@@ -1,6 +1,4 @@
-"""
-Collection of containers for handling ESM input and output data
-"""
+"""Collection of containers for handling ESM input and output data"""
 
 # global
 import ivy
@@ -10,6 +8,15 @@ from ivy.core.container import Container
 
 
 def _pad_to_batch_n_time_dims(data, expected_dims):
+    """
+
+    Parameters
+    ----------
+    data
+
+    expected_dims
+
+    """
     # ToDo: remove this once ESM supports arbitrary batch dimensions
     found_dims = len(data.shape)
     if found_dims == expected_dims:
@@ -31,29 +38,35 @@ class ESMCamMeasurement(Container):
                  pose_mean: ivy.Array = None,
                  pose_cov: ivy.Array = None,
                  dev_str: str = None):
-        """
-        Create esm image measurement container
+        """Create esm image measurement container
 
-        :param img_mean: Camera-relative co-ordinates and image features
-                            *[batch_size, timesteps, height, width, 3 + feat]*
-        :type: img_mean: array
-        :param cam_rel_mat: The pose of the camera relative to the current agent pose. Default is identity matrix
-                            *[batch_size, timesteps, 3, 4]*
-        :type cam_rel_mat: array, optional
-        :param img_var: Image depth and feature variance values, assumed all zero if None.
-                        *[batch_size, timesteps, height, width, 1 + feat]*
-        :type: img_var: array, optional
-        :param validity_mask: Validity mask, for which pixels should be considered. Assumed all valid if None
-                                *[batch_size, timesteps, height, width, 1]*
-        :type validity_mask: array, optional
-        :param pose_mean: The pose of the camera relative to the current agent pose, in rotation vector pose form.
-                            Inferred from cam_rel_mat if None. *[batch_size, timesteps, 6]*
-        :type pose_mean: array, optional
-        :param pose_cov: The convariance of the camera relative pose, in rotation vector form. Assumed all zero if None.
-                            *[batch_size, timesteps, 6, 6]*
-        :type pose_cov: array, optional
-        :param dev_str: Device string to use, default is to use img_mean.
-        :type dev_str: str
+        Parameters
+        ----------
+        img_mean
+            Camera-relative co-ordinates and image features
+            *[batch_size, timesteps, height, width, 3 + feat]*
+        cam_rel_mat
+            The pose of the camera relative to the current agent pose.
+            Default is identity matrix
+            *[batch_size, timesteps, 3, 4]*
+        img_var
+            Image depth and feature variance values, assumed all zero if None.
+            *[batch_size, timesteps, height, width, 1 + feat]*
+        validity_mask
+            Validity mask, for which pixels should be considered.
+            Assumed all valid if None
+            *[batch_size, timesteps, height, width, 1]*
+        pose_mean
+            The pose of the camera relative to the current agent pose,
+            in rotation vector pose form.
+            Inferred from cam_rel_mat if None. *[batch_size, timesteps, 6]*
+        pose_cov
+            The convariance of the camera relative pose, in rotation vector form.
+            Assumed all zero if None.
+            *[batch_size, timesteps, 6, 6]*
+        dev_str
+            Device string to use, default is to use img_mean.
+
         """
         if dev_str is None:
             dev_str = ivy.dev_str(img_mean)
@@ -97,22 +110,25 @@ class ESMObservation(Container):
                  control_mean: ivy.Array = None,
                  control_cov: ivy.Array = None,
                  dev_str: str = None):
-        """
-        Create esm observation container
+        """Create esm observation container
 
-        :param img_meas: dict of ESMImageMeasurement objects, with keys for camera names.
-        :type: img_meas: Ivy container
-        :param agent_rel_mat: The pose of the agent relative to the previous pose, in matrix form
-                                *[batch_size, timesteps, 3, 4]*.
-        :type agent_rel_mat: array
-        :param control_mean: The pose of the agent relative to the previous pose, in rotation vector pose form.
-                                Inferred from agent_rel_mat if None. *[batch_size, timesteps, 6]*
-        :type control_mean: array, optional
-        :param control_cov: The convariance of the agent relative pose, in rotation vector form.
-                             Assumed all zero if None. *[batch_size, timesteps, 6, 6]*.
-        :type control_cov: array, optional
-        :param dev_str: Device string to use, default is to use img_mean.
-        :type dev_str: str
+        Parameters
+        ----------
+        img_meas
+            dict of ESMImageMeasurement objects, with keys for camera names.
+        agent_rel_mat
+            The pose of the agent relative to the previous pose, in matrix form
+            *[batch_size, timesteps, 3, 4]*.
+        control_mean
+            The pose of the agent relative to the previous pose,
+            in rotation vector pose form.
+            Inferred from agent_rel_mat if None. *[batch_size, timesteps, 6]*
+        control_cov
+            The convariance of the agent relative pose, in rotation vector form.
+            Assumed all zero if None. *[batch_size, timesteps, 6, 6]*.
+        dev_str
+            Device string to use, default is to use img_mean.
+
         """
         cont = dict()
         if dev_str is None:
@@ -140,16 +156,19 @@ class ESMMemory(Container):
                  mean: ivy.Array,
                  var: ivy.Array = None,
                  dev_str: str = None):
-        """
-        Create esm memory container
+        """Create esm memory container
 
-        :param mean: The ESM memory feature values *[batch_size, timesteps, omni_height, omni_width, 2 + feat]*
-        :type: mean: array
-        :param var: The ESM memory feature variance values. All assumed zero if None.
-                        *[batch_size, timesteps, omni_height, omni_width, feat]*
-        :type: var: array, optional
-        :param dev_str: Device string to use, default is to use img_mean.
-        :type dev_str: str
+        Parameters
+        ----------
+        mean
+            The ESM memory feature values *[batch_size, timesteps, omni_height,
+            omni_width, 2 + feat]*
+        var
+            The ESM memory feature variance values. All assumed zero if None.
+            *[batch_size, timesteps, omni_height, omni_width, feat]*
+        dev_str
+            Device string to use, default is to use img_mean.
+
         """
         cont = dict()
         mean = _pad_to_batch_n_time_dims(mean, 5)
