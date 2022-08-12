@@ -902,7 +902,7 @@ class ESM(ivy.Module):
         # list of B x OH x OW x (3+F),    list of B x OH x OW x (3+F)
         fused_measurements_list, fused_variances_list = \
             self._kalman_filter_on_measurement_sequence(
-                prev_mem.mean, prev_mem.var, holes_prior[:, 0], holes_prior_var[:, 0],
+                prev_mem['mean'], prev_mem['var'], holes_prior[:, 0], holes_prior_var[:, 0],
                 meas_means, meas_vars,
                 uniform_sphere_pixel_coords[:, 0], obs.control_mean, obs.control_cov,
                 obs.agent_rel_mat,
