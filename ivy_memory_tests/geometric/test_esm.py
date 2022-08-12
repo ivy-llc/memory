@@ -153,7 +153,7 @@ def test_incremental_rotation(dev_str, call):
     memory_3 = esm(empty_obs, memory_2, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
                    image_dims=image_dims)
 
-    assert not np.allclose(memory_1['mean'], memory_3['mean'])
+    assert not np.allclose(memory_1.mean, memory_3.mean)
 
 
 def test_values(dev_str, call):
@@ -176,5 +176,5 @@ def test_values(dev_str, call):
         memory = esm(obs, memory, batch_size=batch_size, num_timesteps=num_timesteps, num_cams=num_cams,
                      image_dims=image_dims)
         expected_mem = ivy.Container.from_disk_as_hdf5(os.path.join(this_dir, 'test_data/mem_{}.hdf5'.format(i)))
-        assert np.allclose(memory['mean'], expected_mem['mean'], atol=1e-3)
-        assert np.allclose(memory['var'], expected_mem['var'])
+        assert np.allclose(memory.mean, expected_mem.mean, atol=1e-3)
+        assert np.allclose(memory.var, expected_mem.var)
