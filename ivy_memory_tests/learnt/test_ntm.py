@@ -129,7 +129,7 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
     # memory object w vars
     ntm = ivy_mem.NTM(
         input_dim, output_dim, ctrl_output_size, ctrl_layers, memory_size, memory_vector_dim,
-        read_head_num, write_head_num, ivy.Container(variables).as_variables(), usage, addressing_mode=addressing_mode,
+        read_head_num, write_head_num, ivy.Container(variables).variable(), usage, addressing_mode=addressing_mode,
         shift_range=shift_range, clip_value=clip_value, init_value=init_value, sequential_writing=True,
         retroactive_updates=False, with_erase=False)
 

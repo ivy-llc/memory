@@ -61,7 +61,7 @@ class NTMCell(ivy.Module):
         # variables
         ivy.Module.__init__(self, 'cpu')
 
-    def _create_variables(self, dev_str):
+    def _create_variables(self, dev_str, dtype=None):
         vars_dict = dict()
         wlim = (6 / (2 * self._memory_vector_dim)) ** 0.5
         vars_dict['read_weights'] =\
