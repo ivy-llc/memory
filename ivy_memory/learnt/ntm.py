@@ -4,10 +4,9 @@
 import ivy
 import math
 import collections
-from ivy.core.container import Container
 
 # local
-from ivy.neural_net_stateful.layers import Linear, LSTM
+from ivy.stateful.layers import Linear, LSTM
 
 
 NTMControllerState = collections.namedtuple('NTMControllerState',
@@ -15,7 +14,7 @@ NTMControllerState = collections.namedtuple('NTMControllerState',
 
 
 def _expand(x, dim, N):
-    return ivy.concatenate([ivy.expand_dims(x, dim) for _ in range(N)], dim)
+    return ivy.concat([ivy.expand_dims(x, axis=dim) for _ in range(N)], axis=dim)
 
 
 class NTMCell(ivy.Module):
@@ -37,7 +36,7 @@ class NTMCell(ivy.Module):
         self._shift_range = shift_range
         self._num_parameters_per_head = self._memory_vector_dim + 1 + 1 + (self._shift_range * 2 + 1) + 1
         self._num_heads = self._read_head_num + self._write_head_num
-        ivy.seed(seed)
+        ivy.seed(seed_value=seed)
 
         # fns + classes
         self._controller = controller
@@ -67,15 +66,15 @@ class NTMCell(ivy.Module):
         wlim = (6 / (2 * self._memory_vector_dim)) ** 0.5
         vars_dict['read_weights'] =\
             dict(zip(['w_' + str(i) for i in range(self._read_head_num)],
-                     [ivy.variable(ivy.random_uniform(-wlim, wlim, [self._memory_vector_dim, ], dev_str=dev_str))
+                     [ivy.variable(ivy.random_uniform(low=-wlim, high=wlim, shape=[self._memory_vector_dim, ], device=dev_str))
                       for _ in range(self._read_head_num)]))
         wlim = (6 / (2 * self._memory_size)) ** 0.5
         vars_dict['write_weights'] =\
             dict(zip(['w_' + str(i) for i in range(self._read_head_num + self._write_head_num)],
-                     [ivy.variable(ivy.random_uniform(-wlim, wlim, [self._memory_size, ], dev_str=dev_str))
+                     [ivy.variable(ivy.random_uniform(low=-wlim, high=wlim, shape=[self._memory_size, ], device=dev_str))
                       for _ in range(self._read_head_num + self._write_head_num)]))
         vars_dict['memory'] = ivy.variable(
-            ivy.ones([self._memory_size, self._memory_vector_dim], dev_str=dev_str) * self._init_value)
+            ivy.ones([self._memory_size, self._memory_vector_dim], device=dev_str) * self._init_value)
         return vars_dict
 
     def _addressing(self, k, beta, g, s, gamma, prev_M, prev_w):
@@ -86,15 +85,15 @@ class NTMCell(ivy.Module):
 
         k = ivy.expand_dims(k, axis=2)
         inner_product = ivy.matmul(prev_M, k)
-        k_norm = ivy.reduce_sum(k ** 2, axis=1, keepdims=True) ** 0.5
-        M_norm = ivy.reduce_sum(prev_M ** 2, axis=2, keepdims=True) ** 0.5
+        k_norm = ivy.sum(k ** 2, axis=1, keepdims=True) ** 0.5
+        M_norm = ivy.sum(prev_M ** 2, axis=2, keepdims=True) ** 0.5
         norm_product = M_norm * k_norm
         K = ivy.squeeze(inner_product / (norm_product + 1e-8))  # eq (6)
 
         # Calculating w^c
 
         K_amplified = ivy.exp(ivy.expand_dims(beta, axis=1) * K)
-        w_c = K_amplified / ivy.reduce_sum(K_amplified, axis=1, keepdims=True)  # eq (5)
+        w_c = K_amplified / ivy.sum(K_amplified, axis=1, keepdims=True)  # eq (5)
 
         if self._addressing_mode == 'content':  # Only focus on content
             return w_c
@@ -104,17 +103,17 @@ class NTMCell(ivy.Module):
         g = ivy.expand_dims(g, axis=1)
         w_g = g * w_c + (1 - g) * prev_w  # eq (7)
 
-        s = ivy.concatenate([s[:, :self._shift_range + 1],
+        s = ivy.concat([s[:, :self._shift_range + 1],
                                  ivy.zeros([s.shape[0], self._memory_size - (self._shift_range * 2 + 1)]),
                                  s[:, -self._shift_range:]], axis=1)
-        t = ivy.concatenate([ivy.flip(s, axis=[1]),
+        t = ivy.concat([ivy.flip(s, axis=[1]),
                                  ivy.flip(s, axis=[1])], axis=1)
         s_matrix = ivy.stack(
             [t[:, self._memory_size - i - 1:self._memory_size * 2 - i - 1] for i in range(self._memory_size)],
             axis=1)
-        w_ = ivy.reduce_sum(ivy.expand_dims(w_g, axis=1) * s_matrix, axis=2)  # eq (8)
+        w_ = ivy.sum(ivy.expand_dims(w_g, axis=1) * s_matrix, axis=2)  # eq (8)
         w_sharpen = w_ ** ivy.expand_dims(gamma, axis=1)
-        w = w_sharpen / ivy.reduce_sum(w_sharpen, axis=1, keepdims=True)  # eq (9)
+        w = w_sharpen / ivy.sum(w_sharpen, axis=1, keepdims=True)  # eq (9)
 
         return w
 
@@ -125,7 +124,7 @@ class NTMCell(ivy.Module):
         if v is None:
             v = self.v
         else:
-            v = Container(v)
+            v = ivy.Container(v)
         read_vector_list = [_expand(ivy.tanh(var), dim=0, N=batch_size)
                             for _, var in v.read_weights.to_iterator()]
         w_list = [_expand(ivy.softmax(var), dim=0, N=batch_size)
@@ -142,8 +141,8 @@ class NTMCell(ivy.Module):
     def _forward(self, x, prev_state):
         prev_read_vector_list = prev_state[1]
 
-        controller_input = ivy.concatenate([x] + prev_read_vector_list, axis=1)
-        controller_output, controller_state = self._controller(ivy.expand_dims(controller_input, -2),
+        controller_input = ivy.concat([x] + prev_read_vector_list, axis=1)
+        controller_output, controller_state = self._controller(ivy.expand_dims(controller_input, axis=-2),
                                                                initial_state=prev_state[0])
         controller_output = controller_output[..., -1, :]
 
@@ -175,10 +174,10 @@ class NTMCell(ivy.Module):
         if self._step == 0:
             usage_indicator = ivy.zeros_like(w_list[0])
         else:
-            usage_indicator = prev_state[3] + ivy.reduce_sum(ivy.concatenate(read_w_list, 0))
+            usage_indicator = prev_state[3] + ivy.sum(ivy.concat(read_w_list, axis=0))
         read_vector_list = []
         for i in range(self._read_head_num):
-            read_vector = ivy.reduce_sum(ivy.expand_dims(read_w_list[i], axis=2) * prev_M, axis=1)
+            read_vector = ivy.sum(ivy.expand_dims(read_w_list[i], axis=2) * prev_M, axis=1)
             read_vector_list.append(read_vector)
 
         # Writing (Sec 3.2)
@@ -188,22 +187,22 @@ class NTMCell(ivy.Module):
         if self._sequential_writing:
             batch_size = ivy.shape(x)[0]
             if self._step < w_wr_size:
-                w_wr_list = [ivy.tile(ivy.cast(ivy.one_hot(
+                w_wr_list = [ivy.tile(ivy.astype(ivy.one_hot(
                     ivy.array([self._step]), w_wr_size), 'float32'),
                     (batch_size, 1))] * self._write_head_num
             else:
-                batch_idxs = ivy.expand_dims(ivy.arange(batch_size, 0), -1)
-                mem_idxs = ivy.expand_dims(ivy.argmax(usage_indicator[..., :w_wr_size], -1), -1)
-                total_idxs = ivy.concatenate((batch_idxs, mem_idxs), -1)
+                batch_idxs = ivy.expand_dims(ivy.arange(batch_size, stop=0), axis=-1)
+                mem_idxs = ivy.expand_dims(ivy.argmax(usage_indicator[..., :w_wr_size], axis=-1), axis=-1)
+                total_idxs = ivy.concat((batch_idxs, mem_idxs), axis=-1)
                 w_wr_list = [ivy.scatter_nd(total_idxs, ivy.ones((batch_size,)),
-                                                (batch_size, w_wr_size))] * self._write_head_num
+                                                shape=(batch_size, w_wr_size))] * self._write_head_num
         else:
             w_wr_list = w_list[self._read_head_num:]
         if self._retroactive_updates:
             w_ret_list = [self._retroactive_discount * prev_wrtie_w[..., w_wr_size:] +
                           (1 - self._retroactive_discount) * prev_wrtie_w[..., :w_wr_size]
                           for prev_wrtie_w in prev_wrtie_w_list]
-            w_wrtie_list = [ivy.concatenate((w_wr, w_ret), -1) for w_wr, w_ret in zip(w_wr_list, w_ret_list)]
+            w_wrtie_list = [ivy.concat((w_wr, w_ret), axis=-1) for w_wr, w_ret in zip(w_wr_list, w_ret_list)]
         else:
             w_wrtie_list = w_wr_list
         M = prev_M
@@ -215,7 +214,7 @@ class NTMCell(ivy.Module):
             add_vector = ivy.expand_dims(ivy.tanh(erase_add_list[i * 2 + 1]), axis=1)
             M = M + ivy.matmul(w, add_vector)
 
-        NTM_output = self._output_proj(ivy.concatenate([controller_output] + read_vector_list, axis=1))
+        NTM_output = self._output_proj(ivy.concat([controller_output] + read_vector_list, axis=1))
         NTM_output = ivy.clip(NTM_output, -self._clip_value, self._clip_value)
 
         self._step += 1
@@ -279,5 +278,5 @@ class NTM(ivy.Module):
         for x in ivy.unstack(inputs, 1):
             output, hidden = self._ntm_cell(x, hidden)
             outputs.append(output)
-        ret = ivy.stack(outputs, 1)
+        ret = ivy.stack(outputs, axis=1)
         return ivy.reshape(ret, batch_shape + [time_dim, -1])
