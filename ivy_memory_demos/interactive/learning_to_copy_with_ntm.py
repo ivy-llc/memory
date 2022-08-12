@@ -3,8 +3,6 @@ import ivy
 import cv2
 import argparse
 import numpy as np
-from ivy.framework_handler import set_framework
-from ivy_demo_utils.framework_utils import choose_random_framework, get_framework_from_str
 
 # local
 from ivy_memory.learnt import NTM
@@ -32,9 +30,10 @@ def train_step(loss_fn_in, optimizer, ntm, total_seq, target_seq, seq_len, mw, v
 
 def main(batch_size=32, num_train_steps=31250, compile_flag=True,
          num_bits=8, seq_len=28, ctrl_output_size=100, memory_size=128, memory_vector_dim=28,
-         overfit_flag=False, interactive=True, f=None):
-    f = choose_random_framework() if f is None else f
-    set_framework(f)
+         overfit_flag=False, interactive=True, f=None, fw=None):
+    fw = ivy.choose_random_backend() if fw is None else fw
+    ivy.set_backend(fw)
+    f = ivy.get_backend(backend=fw) if f is None else f
 
     # train config
     lr = 1e-3 if not overfit_flag else 1e-2
@@ -144,11 +143,12 @@ if __name__ == '__main__':
 
     parser.add_argument('--non_interactive', action='store_true',
                         help='whether to run the demo in non-interactive mode.')
-    parser.add_argument('--framework', type=str, default=None,
-                        help='which framework to use. Chooses a random framework if unspecified.')
+    parser.add_argument('--backend', type=str, default=None,
+                        help='which backend to use. Chooses a random backend if unspecified.')
 
     parsed_args = parser.parse_args()
-    framework = None if parsed_args.framework is None else get_framework_from_str(parsed_args.framework)
+    fw = parsed_args.backend
+    f = None if fw is None else ivy.get_backend(backend=fw)
     main(parsed_args.batch_size, parsed_args.num_training_steps, not parsed_args.eager,
          parsed_args.num_bits, parsed_args.seq_len, parsed_args.ctrl_output_size, parsed_args.memory_size,
-         parsed_args.memory_vector_dim, parsed_args.overfit, not parsed_args.non_interactive, framework)
+         parsed_args.memory_vector_dim, parsed_args.overfit, not parsed_args.non_interactive, f, fw)

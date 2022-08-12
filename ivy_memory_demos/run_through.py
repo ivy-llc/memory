@@ -36,7 +36,7 @@ def main():
     # create model
     in_channels = 32
     out_channels = 8
-    ivy.set_framework('torch')
+    ivy.set_backend('torch')
     model = TorchModelWithLSTM(in_channels, out_channels)
 
     # define inputs
@@ -69,7 +69,7 @@ def main():
         optimizer.step()
         print('step {}, loss = {}'.format(i, loss))
     print('\ndummy PyTorch LSTM model trained!\n')
-    ivy.unset_framework()
+    ivy.unset_backend()
 
     # NTM #
     # ----#
@@ -104,7 +104,7 @@ def main():
     # create model
     in_channels = 32
     out_channels = 8
-    ivy.set_framework('tensorflow')
+    ivy.set_backend('tensorflow')
     model = TfModelWithNTM(in_channels, out_channels)
 
     # define inputs
@@ -138,7 +138,7 @@ def main():
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
         print('step {}, loss = {}'.format(i, loss))
     print('\ndummy TensorFlow NTM model trained!\n')
-    ivy.unset_framework()
+    ivy.unset_backend()
 
     # ESM #
     # ----#
@@ -162,7 +162,7 @@ def main():
     # create model
     in_channels = 32
     out_channels = 8
-    ivy.set_framework('torch')
+    ivy.set_backend('torch')
     model = IvyModelWithESM(in_channels, out_channels)
 
     # input config
@@ -220,7 +220,7 @@ def main():
         model.v = optimizer.step(model.v, grads)
         print('step {}, loss = {}'.format(i, ivy.to_numpy(loss).item()))
     print('\ndummy Ivy ESM model trained!\n')
-    ivy.unset_framework()
+    ivy.unset_backend()
 
     # message
     print('End of Run Through Demo!')

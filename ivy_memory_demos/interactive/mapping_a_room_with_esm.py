@@ -5,9 +5,7 @@ import argparse
 import ivy_mech
 import ivy_vision
 import numpy as np
-from ivy.framework_handler import set_framework, unset_framework
 from ivy_demo_utils.ivy_scene.scene_utils import SimCam, BaseSimulator
-from ivy_demo_utils.framework_utils import choose_random_framework, get_framework_from_str
 
 # local
 import ivy_memory as ivy_mem
@@ -166,11 +164,12 @@ class Simulator(BaseSimulator):
                   '\nClose the visualization window to start the demo.\n')
 
 
-def main(interactive=True, try_use_sim=True, f=None):
+def main(interactive=True, try_use_sim=True, f=None, fw=None):
 
-    # setup framework
-    f = choose_random_framework(excluded=['numpy', 'jax']) if f is None else f
-    set_framework(f)
+    # setup backend
+    fw = ivy.choose_random_backend(excluded=['numpy', 'jax']) if fw is None else fw
+    ivy.set_backend(fw)
+    f = ivy.get_backend(backend=fw) if f is None else f
 
     # simulator and drone
     sim = Simulator(interactive, try_use_sim)
@@ -236,7 +235,7 @@ def main(interactive=True, try_use_sim=True, f=None):
 
     # end of demo
     sim.close()
-    unset_framework()
+    ivy.unset_backend()
 
 
 if __name__ == '__main__':
@@ -245,8 +244,9 @@ if __name__ == '__main__':
                         help='whether to run the demo in non-interactive mode.')
     parser.add_argument('--no_sim', action='store_true',
                         help='whether to run the demo without attempt to use the PyRep simulator.')
-    parser.add_argument('--framework', type=str, default=None,
-                        help='which framework to use. Chooses a random framework if unspecified.')
+    parser.add_argument('--backend', type=str, default=None,
+                        help='which backend to use. Chooses a random backend if unspecified.')
     parsed_args = parser.parse_args()
-    framework = None if parsed_args.framework is None else get_framework_from_str(parsed_args.framework)
-    main(not parsed_args.non_interactive, not parsed_args.no_sim, framework)
+    fw = parsed_args.backend
+    f = None if fw is None else ivy.get_backend(backend=fw)
+    main(not parsed_args.non_interactive, not parsed_args.no_sim, f, fw)
