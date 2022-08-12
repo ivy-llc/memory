@@ -135,9 +135,3 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
 
     # test
     assert np.allclose(call(ntm, x), td.ntm_return[addressing_mode], atol=1e-6)
-
-    # compilation test
-    if call is helpers.torch_call:
-        # pytest scripting does not support try-catch statements
-        return
-    helpers.assert_compilable(ntm)
