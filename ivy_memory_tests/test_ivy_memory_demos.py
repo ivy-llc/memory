@@ -8,7 +8,7 @@ import ivy.jax
 import ivy.mxnet
 import ivy.tensorflow
 import ivy.torch
-import ivy_tests.helpers as helpers
+from ivy_tests.test_ivy import helpers
 
 FWS = [ivy.jax, ivy.mxnet, ivy.tensorflow, ivy.torch]
 

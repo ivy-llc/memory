@@ -6,8 +6,7 @@ Collection of tests for ntm memory module
 import ivy
 import pytest
 import numpy as np
-from ivy_tests import helpers
-from ivy.core.container import Container
+from ivy_tests.test_ivy import helpers
 
 # local
 import ivy_memory as ivy_mem
@@ -116,13 +115,13 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
     wlim = (6 / (2 * memory_vector_dim)) ** 0.5
     variables['ntm_cell']['read_weights'] = dict(zip(
         ['w_' + str(i) for i in range(read_head_num)],
-        [ivy.variable(ivy.array(np.random.uniform(-wlim, wlim, [memory_vector_dim, ]), 'float32'))
+        [ivy.variable(ivy.array(np.random.uniform(-wlim, wlim, [memory_vector_dim, ]), dtype='float32'))
          for _ in range(read_head_num)]))
 
     wlim = (6 / (2 * memory_size)) ** 0.5
     variables['ntm_cell']['write_weights'] = dict(zip(
         ['w_' + str(i) for i in range(read_head_num + write_head_num)],
-        [ivy.variable(ivy.array(np.random.uniform(-wlim, wlim, [memory_size, ]), 'float32'))
+        [ivy.variable(ivy.array(np.random.uniform(-wlim, wlim, [memory_size, ]), dtype='float32'))
          for _ in range(read_head_num + write_head_num)]))
 
     variables['ntm_cell']['memory'] = ivy.variable(ivy.ones([memory_size, memory_vector_dim]) * init_value)
@@ -130,7 +129,7 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
     # memory object w vars
     ntm = ivy_mem.NTM(
         input_dim, output_dim, ctrl_output_size, ctrl_layers, memory_size, memory_vector_dim,
-        read_head_num, write_head_num, Container(variables).as_variables(), usage, addressing_mode=addressing_mode,
+        read_head_num, write_head_num, ivy.Container(variables).as_variables(), usage, addressing_mode=addressing_mode,
         shift_range=shift_range, clip_value=clip_value, init_value=init_value, sequential_writing=True,
         retroactive_updates=False, with_erase=False)
 

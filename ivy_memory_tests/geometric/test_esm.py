@@ -10,8 +10,7 @@ import pytest
 import ivy_mech
 import ivy_vision
 import numpy as np
-import ivy_tests.helpers as helpers
-from ivy.core.container import Container
+from ivy_tests.test_ivy import helpers
 
 # local
 from ivy_memory.geometric.esm import ESM
@@ -30,21 +29,21 @@ def _get_dummy_obs(batch_size, num_frames, num_cams, image_dims, num_feature_cha
 
     img_meas = dict()
     for i in range(num_cams):
-        validity_mask = ivy.ones([batch_size, num_frames] + image_dims + [1], dev_str=dev_str)
+        validity_mask = ivy.ones([batch_size, num_frames] + image_dims + [1], device=dev_str)
         if ones:
-            img_mean = ivy.concatenate((uniform_pixel_coords[..., 0:2], ivy.ones(
-                [batch_size, num_frames] + image_dims + [1 + num_feature_channels], dev_str=dev_str)), -1)
+            img_mean = ivy.concat((uniform_pixel_coords[..., 0:2], ivy.ones(
+                [batch_size, num_frames] + image_dims + [1 + num_feature_channels], device=dev_str)), axis=-1)
             img_var = ivy.ones(
-                     [batch_size, num_frames] + image_dims + [3 + num_feature_channels], dev_str=dev_str)*1e-3
-            pose_mean = ivy.zeros([batch_size, num_frames, 6], dev_str=dev_str)
-            pose_cov = ivy.ones([batch_size, num_frames, 6, 6], dev_str=dev_str)*1e-3
+                     [batch_size, num_frames] + image_dims + [3 + num_feature_channels], device=dev_str)*1e-3
+            pose_mean = ivy.zeros([batch_size, num_frames, 6], device=dev_str)
+            pose_cov = ivy.ones([batch_size, num_frames, 6, 6], device=dev_str)*1e-3
         else:
-            img_mean = ivy.concatenate((uniform_pixel_coords[..., 0:2], ivy.random_uniform(
-                1e-3, 1, [batch_size, num_frames] + image_dims + [1 + num_feature_channels], dev_str=dev_str)), -1)
+            img_mean = ivy.concat((uniform_pixel_coords[..., 0:2], ivy.random_uniform(
+                low=1e-3, high=1, shape=[batch_size, num_frames] + image_dims + [1 + num_feature_channels], device=dev_str)), axis=-1)
             img_var = ivy.random_uniform(
-                     1e-3, 1, [batch_size, num_frames] + image_dims + [3 + num_feature_channels], dev_str=dev_str)
-            pose_mean = ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6], dev_str=dev_str)
-            pose_cov = ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6, 6], dev_str=dev_str)
+                     low=1e-3, high=1, shape=[batch_size, num_frames] + image_dims + [3 + num_feature_channels], device=dev_str)
+            pose_mean = ivy.random_uniform(low=1e-3, high=1, shape=[batch_size, num_frames, 6], device=dev_str)
+            pose_cov = ivy.random_uniform(low=1e-3, high=1, shape=[batch_size, num_frames, 6, 6], device=dev_str)
         if empty:
             img_var = ivy.ones_like(img_var) * 1e12
             validity_mask = ivy.zeros_like(validity_mask)
@@ -54,19 +53,19 @@ def _get_dummy_obs(batch_size, num_frames, num_cams, image_dims, num_feature_cha
              'validity_mask': validity_mask,
              'pose_mean': pose_mean,
              'pose_cov': pose_cov,
-             'cam_rel_mat': ivy.identity(4, batch_shape=[batch_size, num_frames], dev_str=dev_str)[..., 0:3, :]}
+             'cam_rel_mat': ivy.eye(4, batch_shape=[batch_size, num_frames], device=dev_str)[..., 0:3, :]}
 
     if ones:
-        control_mean = ivy.zeros([batch_size, num_frames, 6], dev_str=dev_str)
-        control_cov = ivy.ones([batch_size, num_frames, 6, 6], dev_str=dev_str)*1e-3
+        control_mean = ivy.zeros([batch_size, num_frames, 6], device=dev_str)
+        control_cov = ivy.ones([batch_size, num_frames, 6, 6], device=dev_str)*1e-3
     else:
-        control_mean = ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6], dev_str=dev_str)
-        control_cov = ivy.random_uniform(1e-3, 1, [batch_size, num_frames, 6, 6], dev_str=dev_str)
-    return Container({'img_meas': img_meas,
+        control_mean = ivy.random_uniform(low=1e-3, high=1, shape=[batch_size, num_frames, 6], device=dev_str)
+        control_cov = ivy.random_uniform(low=1e-3, high=1, shape=[batch_size, num_frames, 6, 6], device=dev_str)
+    return ivy.Container({'img_meas': img_meas,
                       'control_mean': control_mean,
                       'control_cov': control_cov,
-                      'agent_rel_mat': ivy.identity(4, batch_shape=[batch_size, num_frames],
-                                                    dev_str=dev_str)[..., 0:3, :]})
+                      'agent_rel_mat': ivy.eye(4, batch_shape=[batch_size, num_frames],
+                                                    device=dev_str)[..., 0:3, :]})
 
 
 # PyTorch #
@@ -105,7 +104,7 @@ def test_realtime_speed(dev_str, call):
         # convolutions not yet implemented in numpy or jax
         # mxnet is unable to stack or expand zero-dimensional tensors
         pytest.skip()
-    ivy.seed(0)
+    ivy.seed(seed_value=0)
     device = 'cpu'
     batch_size = 1
     num_timesteps = 1
