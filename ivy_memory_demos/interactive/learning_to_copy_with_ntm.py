@@ -81,7 +81,7 @@ def main(batch_size=32, num_train_steps=31250, compile_flag=True,
         # train step
         loss, pred_vals = train_step(
             loss_fn_maybe_compiled, optimizer, ntm, total_seq, target_seq, seq_len, mw, vw,
-            ivy.array(i + 1, 'float32'), max_grad_norm)
+            ivy.array(i + 1, dtype='float32'), max_grad_norm)
 
         # log
         print('step: {}, loss: {}'.format(i, ivy.to_numpy(loss).item()))
