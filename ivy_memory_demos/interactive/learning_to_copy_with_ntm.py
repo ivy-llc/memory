@@ -12,7 +12,7 @@ def loss_fn(ntm, v, total_seq, target_seq, seq_len):
     output_sequence = ntm(total_seq, v=v)
     pred_logits = output_sequence[:, seq_len + 1:, :]
     pred_vals = ivy.sigmoid(pred_logits)
-    return ivy.reduce_sum(ivy.binary_cross_entropy(pred_vals, target_seq))[0] / pred_vals.shape[0], pred_vals
+    return ivy.sum(ivy.binary_cross_entropy(pred_vals, target_seq))[0] / pred_vals.shape[0], pred_vals
 
 
 def train_step(loss_fn_in, optimizer, ntm, total_seq, target_seq, seq_len, mw, vw, step, max_grad_norm):
@@ -20,7 +20,7 @@ def train_step(loss_fn_in, optimizer, ntm, total_seq, target_seq, seq_len, mw, v
     loss, dldv, pred_vals = ivy.execute_with_gradients(
         lambda v_: loss_fn_in(v_, total_seq, target_seq, seq_len), ntm.v)
 
-    global_norm = ivy.reduce_sum(ivy.stack([ivy.reduce_sum(grad ** 2) for grad in dldv.to_flat_list()], 0)) ** 0.5
+    global_norm = ivy.sum(ivy.stack([ivy.sum(grad ** 2) for grad in dldv.to_flat_list()], axis=0)) ** 0.5
     dldv = dldv.map(lambda x, _: x * max_grad_norm / ivy.maximum(global_norm, max_grad_norm))
 
     # update variables
@@ -63,7 +63,7 @@ def main(batch_size=32, num_train_steps=31250, compile_flag=True,
         loss_fn_maybe_compiled = lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(ntm, v, ttl_sq, trgt_sq, sq_ln)
 
     # init
-    input_seq_m1 = ivy.cast(ivy.random_uniform(0., 1., (batch_size, seq_len, num_bits)) > 0.5, 'float32')
+    input_seq_m1 = ivy.astype(ivy.random_uniform(low=0., high=1., shape=(batch_size, seq_len, num_bits)) > 0.5, 'float32')
     mw = None
     vw = None
 
@@ -71,12 +71,12 @@ def main(batch_size=32, num_train_steps=31250, compile_flag=True,
 
         # sequence to copy
         if not overfit_flag:
-            input_seq_m1 = ivy.cast(ivy.random_uniform(0., 1., (batch_size, seq_len, num_bits)) > 0.5, 'float32')
+            input_seq_m1 = ivy.astype(ivy.random_uniform(low=0., high=1., shape=(batch_size, seq_len, num_bits)) > 0.5, 'float32')
         target_seq = input_seq_m1
-        input_seq = ivy.concatenate((input_seq_m1, ivy.zeros((batch_size, seq_len, 1))), -1)
+        input_seq = ivy.concat((input_seq_m1, ivy.zeros((batch_size, seq_len, 1))), axis=-1)
         eos = ivy.ones((batch_size, 1, num_bits + 1))
         output_seq = ivy.zeros_like(input_seq)
-        total_seq = ivy.concatenate((input_seq, eos, output_seq), -2)
+        total_seq = ivy.concat((input_seq, eos, output_seq), axis=-2)
 
         # train step
         loss, pred_vals = train_step(
