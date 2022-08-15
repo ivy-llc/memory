@@ -12,7 +12,7 @@ def loss_fn(ntm, v, total_seq, target_seq, seq_len):
     output_sequence = ntm(total_seq, v=v)
     pred_logits = output_sequence[:, seq_len + 1:, :]
     pred_vals = ivy.sigmoid(pred_logits)
-    return ivy.sum(ivy.binary_cross_entropy(pred_vals, target_seq))[0] / pred_vals.shape[0], pred_vals
+    return ivy.variable(ivy.sum(ivy.binary_cross_entropy(pred_vals, target_seq))) / pred_vals.shape[0], pred_vals
 
 
 def train_step(loss_fn_in, optimizer, ntm, total_seq, target_seq, seq_len, mw, vw, step, max_grad_norm):
