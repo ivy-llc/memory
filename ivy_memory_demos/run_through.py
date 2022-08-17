@@ -26,7 +26,7 @@ def main():
 
         def _assign_variables(self):
             self._lstm.v.map(
-                lambda x, kc: self.register_parameter(name=kc, param=torch.nn.Parameter(x)))
+                lambda x, kc: self.register_parameter(name=kc, param=torch.nn.Parameter(x.data)))
             self._lstm.v = self._lstm.v.map(lambda x, kc: self._parameters[kc])
 
         def forward(self, x):
@@ -52,11 +52,11 @@ def main():
     assert output_seq.shape[-1] == out_channels
 
     # define loss function
-    target = torch.zeros_like(output_seq)
+    target = ivy.zeros_like(output_seq)
 
     def loss_fn():
         pred = model(input_seq)
-        return torch.sum((pred - target) ** 2)
+        return ivy.sum((pred - target) ** 2)
 
     # define optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-2)
@@ -120,11 +120,11 @@ def main():
     assert output_seq.shape[-1] == out_channels
 
     # define loss function
-    target = tf.zeros_like(output_seq)
+    target = ivy.zeros_like(output_seq)
 
     def loss_fn():
         pred = model(input_seq)
-        return tf.reduce_sum((pred - target) ** 2)
+        return ivy.sum((pred - target) ** 2)
 
     # define optimizer
     optimizer = tf.keras.optimizers.Adam(1e-2)
@@ -156,7 +156,7 @@ def main():
 
         def _forward(self, obs):
             mem = self._esm(obs)
-            x = ivy.reshape(mem.mean, (-1, self._channels_in))
+            x = ivy.reshape(mem['mean'], (-1, self._channels_in))
             return self._linear(x)
 
     # create model
@@ -181,8 +181,8 @@ def main():
     inv_calib_mats = ivy.random_uniform(shape=[batch_size, num_timesteps, 3, 3])
     cam_coords = ivy_vision.ds_pixel_to_cam_coords(ds_pixel_coords, inv_calib_mats)[..., 0:3]
     features = ivy.random_uniform(shape=[batch_size, num_timesteps] + image_dims + [num_feature_channels])
-    img_mean = ivy.concatenate((cam_coords, features), -1)
-    cam_rel_mat = ivy.identity(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
+    img_mean = ivy.concat((cam_coords, features), axis=-1)
+    cam_rel_mat = ivy.eye(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
 
     # place these into an ESM camera measurement container
     esm_cam_meas = ESMCamMeasurement(
@@ -191,7 +191,7 @@ def main():
     )
 
     # define agent pose transformation
-    agent_rel_mat = ivy.identity(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
+    agent_rel_mat = ivy.eye(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
 
     # collect together into an ESM observation container
     esm_obs = ESMObservation(
@@ -208,7 +208,7 @@ def main():
 
     def loss_fn(v):
         pred = model(esm_obs, v=v)
-        return ivy.reduce_mean((pred - target) ** 2)
+        return ivy.mean((pred - target) ** 2)
 
     # optimizer
     optimizer = ivy.SGD(lr=1e-4)
