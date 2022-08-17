@@ -125,7 +125,7 @@ def test_realtime_speed(dev_str, call):
         np.max(memory_mean)
     end_time = time.perf_counter()
     time_taken = end_time - start_time
-    assert time_taken < 30.
+    assert time_taken < 35.
 
 
 def test_incremental_rotation(dev_str, call):
