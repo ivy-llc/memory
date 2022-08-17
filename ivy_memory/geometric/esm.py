@@ -228,9 +228,9 @@ class ESM(ivy.Module):
         # cam 1 to cam 2 coords
         
         if ivy.is_bool_dtype(cam_coords_f1):
-            cam_coords_f1 = ivy.astype(cam_coords_f1, 'float32')
+            cam_coords_f1 = ivy.astype(cam_coords_f1, 'int32')
         if ivy.is_bool_dtype(cam_rel_mats):
-            cam_rel_mats = ivy.astype(cam_rel_mats, 'float32')
+            cam_rel_mats = ivy.astype(cam_rel_mats, 'int32')
         cam_coords_f2 = ivy_vision.cam_to_cam_coords(
             ivy_mech.make_coordinates_homogeneous(
                 cam_coords_f1, [batch_size, num_timesteps, num_cams] + image_dims),
@@ -270,7 +270,7 @@ class ESM(ivy.Module):
 
         # quantized result from all scene cameras
         if ivy.is_bool_dtype(image_var_f2_flat):
-            image_var_f2_flat = ivy.astype(image_var_f2_flat, 'float32')
+            image_var_f2_flat = ivy.astype(image_var_f2_flat, 'int32')
 
         # B x N x OH x OW x (3+F)   # B x N x OH x OW x (3+F)
         return ivy_vision.quantize_to_image(
