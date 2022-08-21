@@ -6,7 +6,7 @@ import math
 import collections
 
 # local
-from ivy.stateful.layers import Linear, LSTM
+from ivy import Linear, LSTM
 
 
 NTMControllerState = collections.namedtuple('NTMControllerState',
