@@ -8,22 +8,25 @@ RUN rm -rf ivy && \
     cat optional.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
     python3 -m pip install --user -e .
 
-# Install Ivy Mechanics
+# Install Ivy Mech
 RUN git clone https://github.com/unifyai/mech && \
     cd mech && \
     cat requirements.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
+    cat optional.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
     python3 -m pip install --user -e .
 
 # Install Ivy Vision
 RUN git clone https://github.com/unifyai/vision && \
     cd vision && \
     cat requirements.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
+    cat optional.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
     python3 -m pip install --user -e .
 
 # Install Ivy Memory
 RUN git clone https://github.com/unifyai/memory && \
     cd memory && \
     cat requirements.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
+    cat optional.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r /dev/stdin && \
     python3 -m pip install --user -e .
 
 # Install Ivy Demo Utils
