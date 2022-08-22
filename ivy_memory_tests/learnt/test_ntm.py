@@ -6,7 +6,6 @@ Collection of tests for ntm memory module
 import ivy
 import pytest
 import numpy as np
-from ivy_tests.test_ivy import helpers
 
 # local
 import ivy_memory as ivy_mem
@@ -49,7 +48,8 @@ td = NTMTestData()
     "addressing_mode", ['content', 'content_and_location'])
 @pytest.mark.parametrize(
     "batch_shape", [[1], [1, 2]])
-def test_ntm(addressing_mode, batch_shape, dev_str, call):
+def test_ntm(addressing_mode, batch_shape, dev_str, f, fw):
+    ivy.set_backend(fw)
 
     # ntm config
     input_dim = 256
@@ -78,7 +78,7 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
 
     # test
     x = ivy.ones(batch_shape + [timesteps, input_dim])
-    assert call(ntm, x).shape == tuple(batch_shape + [timesteps, output_dim])
+    assert ntm(x).shape == tuple(batch_shape + [timesteps, output_dim])
 
     # variables
     variables = dict()
@@ -134,4 +134,6 @@ def test_ntm(addressing_mode, batch_shape, dev_str, call):
         retroactive_updates=False, with_erase=False)
 
     # test
-    assert np.allclose(call(ntm, x), td.ntm_return[addressing_mode], atol=1e-6)
+    assert np.allclose(ivy.to_numpy(ntm(x)), td.ntm_return[addressing_mode], atol=1e-6)
+
+    ivy.unset_backend()

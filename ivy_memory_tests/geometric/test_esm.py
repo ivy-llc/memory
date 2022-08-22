@@ -71,8 +71,8 @@ def _get_dummy_obs(batch_size, num_frames, num_cams, image_dims, num_feature_cha
 # PyTorch #
 # --------#
 
-def test_construction(dev_str, call):
-    if call in [helpers.mx_call]:
+def test_construction(dev_str, fw):
+    if fw == 'mxnet':
         # mxnet is unable to stack or expand zero-dimensional tensors
         pytest.skip()
     ESM()
@@ -80,8 +80,8 @@ def test_construction(dev_str, call):
 
 @pytest.mark.parametrize(
     "with_args", [True, False])
-def test_inference(with_args, dev_str, call):
-    if call in [helpers.np_call, helpers.jnp_call, helpers.mx_call]:
+def test_inference(with_args, dev_str, fw):
+    if fw in ['numpy', 'jax', 'mxnet']:
         # convolutions not yet implemented in numpy or jax
         # mxnet is unable to stack or expand zero-dimensional tensors
         pytest.skip()
@@ -99,8 +99,8 @@ def test_inference(with_args, dev_str, call):
         image_dims=image_dims if with_args else None)
 
 
-def test_realtime_speed(dev_str, call):
-    if call in [helpers.np_call, helpers.jnp_call, helpers.mx_call]:
+def test_realtime_speed(dev_str, fw):
+    if fw in ['numpy', 'jax', 'mxnet']:
         # convolutions not yet implemented in numpy or jax
         # mxnet is unable to stack or expand zero-dimensional tensors
         pytest.skip()
@@ -128,8 +128,8 @@ def test_realtime_speed(dev_str, call):
     assert time_taken < 35.
 
 
-def test_incremental_rotation(dev_str, call):
-    if call in [helpers.np_call, helpers.jnp_call, helpers.mx_call]:
+def test_incremental_rotation(dev_str, fw):
+    if fw in ['numpy', 'jax', 'mxnet']:
         # convolutions not yet implemented in numpy or jax
         # mxnet is unable to stack or expand zero-dimensional tensors
         pytest.skip()
@@ -156,8 +156,8 @@ def test_incremental_rotation(dev_str, call):
     assert not np.allclose(memory_1['mean'], memory_3['mean'])
 
 
-def test_values(dev_str, call):
-    if call in [helpers.np_call, helpers.jnp_call, helpers.mx_call]:
+def test_values(dev_str, fw):
+    if fw in ['numpy', 'jax', 'mxnet']:
         # convolutions not yet implemented in numpy or jax
         # mxnet is unable to stack or expand zero-dimensional tensors
         pytest.skip()
