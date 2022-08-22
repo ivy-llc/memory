@@ -149,10 +149,10 @@ class NTMCell(ivy.Module):
         parameters = self._controller_proj(controller_output)
         parameters = ivy.clip(parameters, -self._clip_value, self._clip_value)
         head_parameter_list = \
-            ivy.split(parameters[:, :self._num_parameters_per_head * self._num_heads], self._num_heads,
+            ivy.split(parameters[:, :self._num_parameters_per_head * self._num_heads], num_or_size_splits=self._num_heads,
                           axis=1)
         erase_add_list = ivy.split(parameters[:, self._num_parameters_per_head * self._num_heads:],
-                                       2 * self._write_head_num, axis=1)
+                                       num_or_size_splits=2 * self._write_head_num, axis=1)
 
         prev_w_list = prev_state[2]
         prev_M = prev_state[4]
