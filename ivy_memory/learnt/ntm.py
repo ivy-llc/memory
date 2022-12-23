@@ -59,22 +59,21 @@ class NTMCell(ivy.Module):
         self._with_erase = with_erase
 
         # variables
-        ivy.Module.__init__(self, 'cpu')
+        ivy.Module.__init__(self, device='cpu')
 
-    def _create_variables(self, dev_str, dtype=None):
+    def _create_variables(self, device=None, dtype=None):
         vars_dict = dict()
         wlim = (6 / (2 * self._memory_vector_dim)) ** 0.5
         vars_dict['read_weights'] =\
             dict(zip(['w_' + str(i) for i in range(self._read_head_num)],
-                     [ivy.variable(ivy.random_uniform(low=-wlim, high=wlim, shape=[self._memory_vector_dim, ], device=dev_str))
+                     [ivy.random_uniform(low=-wlim, high=wlim, shape=[self._memory_vector_dim, ], device=device)
                       for _ in range(self._read_head_num)]))
         wlim = (6 / (2 * self._memory_size)) ** 0.5
         vars_dict['write_weights'] =\
             dict(zip(['w_' + str(i) for i in range(self._read_head_num + self._write_head_num)],
-                     [ivy.variable(ivy.random_uniform(low=-wlim, high=wlim, shape=[self._memory_size, ], device=dev_str))
+                     [ivy.random_uniform(low=-wlim, high=wlim, shape=[self._memory_size, ], device=device)
                       for _ in range(self._read_head_num + self._write_head_num)]))
-        vars_dict['memory'] = ivy.variable(
-            ivy.ones([self._memory_size, self._memory_vector_dim], device=dev_str) * self._init_value)
+        vars_dict['memory'] = ivy.ones([self._memory_size, self._memory_vector_dim], device=device) * self._init_value
         return vars_dict
 
     def _addressing(self, k, beta, g, s, gamma, prev_M, prev_w):
@@ -88,7 +87,7 @@ class NTMCell(ivy.Module):
         k_norm = ivy.sum(k ** 2, axis=1, keepdims=True) ** 0.5
         M_norm = ivy.sum(prev_M ** 2, axis=2, keepdims=True) ** 0.5
         norm_product = M_norm * k_norm
-        K = ivy.squeeze(inner_product / (norm_product + 1e-8))  # eq (6)
+        K = ivy.squeeze(inner_product / (norm_product + 1e-8), axis=-1)  # eq (6)
 
         # Calculating w^c
 
@@ -126,9 +125,9 @@ class NTMCell(ivy.Module):
         else:
             v = ivy.Container(v)
         read_vector_list = [_expand(ivy.tanh(var), dim=0, N=batch_size)
-                            for _, var in v.read_weights.to_iterator()]
+                            for _, var in v.read_weights.cont_to_iterator()]
         w_list = [_expand(ivy.softmax(var), dim=0, N=batch_size)
-                  for _, var in v.write_weights.to_iterator()]
+                  for _, var in v.write_weights.cont_to_iterator()]
         usage_indicator = _expand(self._usage, dim=0, N=batch_size)
         M = _expand(v.memory, dim=0, N=batch_size)
         return NTMControllerState(
@@ -265,7 +264,7 @@ class NTM(ivy.Module):
                            usage, addressing_mode, shift_range, clip_value, init_value, sequential_writing,
                            retroactive_updates, retroactive_discount, with_erase)
         self._ntm_cell = ntm_cell
-        ivy.Module.__init__(self, 'cpu', v=v)
+        ivy.Module.__init__(self, device='cpu', v=v)
 
     def _forward(self, inputs, hidden=None):
         inputs_shape = list(inputs.shape)
@@ -275,7 +274,7 @@ class NTM(ivy.Module):
         if hidden is None:
             hidden = self._ntm_cell.get_start_state(inputs, inputs.shape[0], inputs.dtype, v=self.v.ntm_cell)
         outputs = []
-        for x in ivy.unstack(inputs, 1):
+        for x in ivy.unstack(inputs, axis=1):
             output, hidden = self._ntm_cell(x, hidden)
             outputs.append(output)
         ret = ivy.stack(outputs, axis=1)
