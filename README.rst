@@ -46,7 +46,7 @@ Contents
 * `Overview`_
 * `Run Through`_
 * `Interactive Demos`_
-* `Get Involed`_
+* `Get Involved`_
 
 Overview
 --------
@@ -407,8 +407,8 @@ While this example only projects color values into the memory, arbitrary neural 
         <img width="75%" style="display: block;" src='https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/ivy_memory/demo_b.gif?raw=true'>
     </p>
 
-Get Involed
------------
+Get Involved
+------------
 
 We hope the memory classes in this library are useful to a wide range of machine learning developers.
 However, there are many more areas of differentiable memory which could be covered by this library.
