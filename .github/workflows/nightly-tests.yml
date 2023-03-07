@@ -12,4 +12,8 @@ jobs:
 
       - name: Run Tests
         run: |
-          docker run --rm -v `pwd`/memory:/memory unifyai/memory:latest python3 -m pytest ivy_memory_tests/
+          cd memory
+          mkdir .ivy
+          touch .ivy/key.pem
+          echo -n ${{ secrets.USER_API_KEY }} > .ivy/key.pem
+          docker run --rm -v `pwd`:/memory unifyai/memory:latest python3 -m pytest ivy_memory_tests/
