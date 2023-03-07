@@ -1,5 +1,6 @@
 # global
 import ivy
+import ivy.compiler.compiler as ic
 import cv2
 import argparse
 import numpy as np
@@ -55,10 +56,9 @@ def main(batch_size=32, num_train_steps=31250, compile_flag=True,
     total_seq_example = ivy.random_uniform(shape=(batch_size, 2*seq_len + 1, num_bits + 1))
     target_seq_example = total_seq_example[:, 0:seq_len, :-1]
     if compile_flag:
-        loss_fn_maybe_compiled = ivy.compile(
+        loss_fn_maybe_compiled = ic.compile(
             lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(ntm, v, ttl_sq, trgt_sq, sq_ln),
-            dynamic=False, example_inputs=[
-                ntm.v, total_seq_example, target_seq_example, seq_len])
+            return_backend_compiled_fn=True)
     else:
         loss_fn_maybe_compiled = lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(ntm, v, ttl_sq, trgt_sq, sq_ln)
 
