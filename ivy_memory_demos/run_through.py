@@ -69,7 +69,7 @@ def main():
         optimizer.step()
         print('step {}, loss = {}'.format(i, loss))
     print('\ndummy PyTorch LSTM model trained!\n')
-    ivy.unset_backend()
+    ivy.previous_backend()
 
     # NTM #
     # ----#
@@ -138,7 +138,7 @@ def main():
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
         print('step {}, loss = {}'.format(i, loss))
     print('\ndummy TensorFlow NTM model trained!\n')
-    ivy.unset_backend()
+    ivy.previous_backend()
 
     # ESM #
     # ----#
@@ -220,7 +220,7 @@ def main():
         model.v = optimizer.step(model.v, grads)
         print('step {}, loss = {}'.format(i, ivy.to_numpy(loss).item()))
     print('\ndummy Ivy ESM model trained!\n')
-    ivy.unset_backend()
+    ivy.previous_backend()
 
     # message
     print('End of Run Through Demo!')

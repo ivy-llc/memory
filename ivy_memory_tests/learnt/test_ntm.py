@@ -136,4 +136,4 @@ def test_ntm(addressing_mode, batch_shape, dev_str, f, fw):
     # test
     assert np.allclose(ivy.to_numpy(ntm(x)), td.ntm_return[addressing_mode], atol=1e-6)
 
-    ivy.unset_backend()
+    ivy.previous_backend()
