@@ -4,14 +4,7 @@
   :toctree: memory-geometric
   :template: top_level_toc.rst
   :recursive:
-  :include:
+  :caption: API Reference
 
   ivy_memory.geometric
-
-.. autosummary::
-  :toctree: memory-learnt
-  :template: top_level_toc.rst
-  :recursive:
-  :include:
-
   ivy_memory.learnt
