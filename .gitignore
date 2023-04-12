@@ -16,3 +16,4 @@ saved_model/
 vis/
 *.png
 *.pkl
+.DS_Store
