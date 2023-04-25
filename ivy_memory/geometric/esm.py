@@ -446,7 +446,8 @@ class ESM(ivy.Module):
         cam_rel_poses_cov_list = list()
         cam_rel_mats_list = list()
         validity_mask_list = list()
-        for key, item in measurements.to_iterator(leaf_keys_only=True):
+        print(measurements)
+        for key, item in measurements.cont_to_iterator(leaf_keys_only=True):
             if key == 'img_mean':
                 # B x N x 1 x H x W x (3+f)
                 images_list.append(ivy.expand_dims(item, axis=2))
