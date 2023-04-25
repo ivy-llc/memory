@@ -45,4 +45,7 @@ RUN cat demo_requirements.txt | grep -v "ivy-" | pip3 install --no-cache-dir -r 
 #     rm -rf requirements.txt && \
 #     rm -rf demo_requirements.txt
 
+RUN python3 -m pip install tensorflow==2.11
+RUN python3 -m pip install torch_scatter==2.1.0
+
 WORKDIR /memory
