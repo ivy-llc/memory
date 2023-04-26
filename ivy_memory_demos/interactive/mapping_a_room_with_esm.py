@@ -169,7 +169,7 @@ def main(interactive=True, try_use_sim=True, f=None, fw=None):
     # setup backend
     fw = ivy.choose_random_backend(excluded=['numpy', 'jax']) if fw is None else fw
     ivy.set_backend(fw)
-    f = ivy.get_backend(backend=fw) if f is None else f
+    f = ivy.with_backend(backend=fw) if f is None else f
 
     # simulator and drone
     sim = Simulator(interactive, try_use_sim)
@@ -248,5 +248,5 @@ if __name__ == '__main__':
                         help='which backend to use. Chooses a random backend if unspecified.')
     parsed_args = parser.parse_args()
     fw = parsed_args.backend
-    f = None if fw is None else ivy.get_backend(backend=fw)
+    f = None if fw is None else ivy.with_backend(backend=fw)
     main(not parsed_args.non_interactive, not parsed_args.no_sim, f, fw)

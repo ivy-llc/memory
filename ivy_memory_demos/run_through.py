@@ -25,9 +25,9 @@ def main():
             self._assign_variables()
 
         def _assign_variables(self):
-            self._lstm.v.map(
+            self._lstm.v.cont_map(
                 lambda x, kc: self.register_parameter(name=kc, param=torch.nn.Parameter(x.data)))
-            self._lstm.v = self._lstm.v.map(lambda x, kc: self._parameters[kc])
+            self._lstm.v = self._lstm.v.cont_map(lambda x, kc: self._parameters[kc])
 
         def forward(self, x):
             x = self._linear(x)
@@ -89,13 +89,13 @@ def main():
             self._assign_variables()
 
         def _assign_variables(self):
-            self._ntm.v.map(
+            self._ntm.v.cont_map(
                 lambda x, kc: self.add_weight(name=kc, shape=x.shape))
-            self.set_weights([ivy.to_numpy(v) for k, v in self._ntm.v.to_iterator()])
+            self.set_weights([ivy.to_numpy(v) for k, v in self._ntm.v.cont_to_iterator()])
             self.trainable_weights_dict = dict()
             for weight in self.trainable_weights:
                 self.trainable_weights_dict[weight.name] = weight
-            self._ntm.v = self._ntm.v.map(lambda x, kc: self.trainable_weights_dict[kc + ':0'])
+            self._ntm.v = self._ntm.v.cont_map(lambda x, kc: self.trainable_weights_dict[kc + ':0'])
 
         def call(self, x, **kwargs):
             x = self._linear(x)
