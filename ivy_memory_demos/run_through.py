@@ -30,7 +30,7 @@ def main():
                     name=kc, param=torch.nn.Parameter(x.data)
                 )
             )
-            self._lstm.v = self._lstm.v.map(lambda x, kc: self._parameters[kc])
+            self._lstm.v = self._lstm.v.cont_map(lambda x, kc: self._parameters[kc])
 
         def forward(self, x):
             x = self._linear(x)
@@ -179,11 +179,6 @@ def main():
     image_dims = [5, 5]
     num_timesteps = 2
     num_feature_channels = 3
-
-    # create image of pixel co-ordinates
-    uniform_pixel_coords = ivy_vision.create_uniform_pixel_coords_image(
-        image_dims, [batch_size, num_timesteps]
-    )
 
     # define camera measurement
     depths = ivy.random_uniform(shape=[batch_size, num_timesteps] + image_dims + [1])
