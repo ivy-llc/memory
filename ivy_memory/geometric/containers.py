@@ -21,22 +21,25 @@ def _pad_to_batch_n_time_dims(data, expected_dims):
     if found_dims == expected_dims:
         return data
     elif found_dims < expected_dims:
-        return ivy.reshape(data, [1]*(expected_dims - found_dims) + list(data.shape))
+        return ivy.reshape(data, [1] * (expected_dims - found_dims) + list(data.shape))
     else:
-        raise Exception('found more dims {} than expected {}'.format(found_dims, expected_dims))
+        raise Exception(
+            "found more dims {} than expected {}".format(found_dims, expected_dims)
+        )
 
 
 # noinspection PyMissingConstructor
 class ESMCamMeasurement(ivy.Container):
-
-    def __init__(self,
-                 img_mean: ivy.Array,
-                 cam_rel_mat: ivy.Array = None,
-                 img_var: ivy.Array = None,
-                 validity_mask: ivy.Array = None,
-                 pose_mean: ivy.Array = None,
-                 pose_cov: ivy.Array = None,
-                 dev_str: str = None):
+    def __init__(
+        self,
+        img_mean: ivy.Array,
+        cam_rel_mat: ivy.Array = None,
+        img_var: ivy.Array = None,
+        validity_mask: ivy.Array = None,
+        pose_mean: ivy.Array = None,
+        pose_cov: ivy.Array = None,
+        dev_str: str = None,
+    ):
         """Create esm image measurement container
 
         Parameters
@@ -71,44 +74,50 @@ class ESMCamMeasurement(ivy.Container):
             dev_str = ivy.dev(img_mean)
         img_mean = _pad_to_batch_n_time_dims(img_mean, 5)
         cont = dict()
-        cont['img_mean'] = img_mean
+        cont["img_mean"] = img_mean
         if cam_rel_mat is None:
-            cam_rel_mat = ivy.eye(4, batch_shape=img_mean.shape[0:2], device=dev_str)[..., 0:3, :]
+            cam_rel_mat = ivy.eye(4, batch_shape=img_mean.shape[0:2], device=dev_str)[
+                ..., 0:3, :
+            ]
         else:
             cam_rel_mat = _pad_to_batch_n_time_dims(cam_rel_mat, 4)
-        cont['cam_rel_mat'] = cam_rel_mat
+        cont["cam_rel_mat"] = cam_rel_mat
         if img_var is None:
             img_var = ivy.zeros_like(img_mean, device=dev_str)
         else:
             img_var = _pad_to_batch_n_time_dims(img_var, 5)
-        cont['img_var'] = img_var
+        cont["img_var"] = img_var
         if validity_mask is None:
             validity_mask = ivy.ones_like(img_mean[..., 0:1], device=dev_str)
         else:
             validity_mask = _pad_to_batch_n_time_dims(validity_mask, 5)
-        cont['validity_mask'] = validity_mask
+        cont["validity_mask"] = validity_mask
         if pose_mean is None:
             pose_mean = ivy_mech.mat_pose_to_rot_vec_pose(cam_rel_mat)
         else:
             pose_mean = _pad_to_batch_n_time_dims(pose_mean, 3)
-        cont['pose_mean'] = pose_mean
+        cont["pose_mean"] = pose_mean
         if pose_cov is None:
-            pose_cov = ivy.tile(ivy.expand_dims(ivy.zeros_like(pose_mean, device=dev_str), axis=-1), (1, 1, 1, 6))
+            pose_cov = ivy.tile(
+                ivy.expand_dims(ivy.zeros_like(pose_mean, device=dev_str), axis=-1),
+                (1, 1, 1, 6),
+            )
         else:
             pose_cov = _pad_to_batch_n_time_dims(pose_cov, 4)
-        cont['pose_cov'] = pose_cov
+        cont["pose_cov"] = pose_cov
         ivy.Container.__init__(self, cont)
 
 
 # noinspection PyMissingConstructor
 class ESMObservation(ivy.Container):
-
-    def __init__(self,
-                 img_meas: Dict[str, ESMCamMeasurement],
-                 agent_rel_mat: ivy.Array,
-                 control_mean: ivy.Array = None,
-                 control_cov: ivy.Array = None,
-                 dev_str: str = None):
+    def __init__(
+        self,
+        img_meas: Dict[str, ESMCamMeasurement],
+        agent_rel_mat: ivy.Array,
+        control_mean: ivy.Array = None,
+        control_cov: ivy.Array = None,
+        dev_str: str = None,
+    ):
         """Create esm observation container
 
         Parameters
@@ -132,29 +141,28 @@ class ESMObservation(ivy.Container):
         cont = dict()
         if dev_str is None:
             dev_str = ivy.dev(agent_rel_mat)
-        cont['img_meas'] = ivy.Container(img_meas)
+        cont["img_meas"] = ivy.Container(img_meas)
         agent_rel_mat = _pad_to_batch_n_time_dims(agent_rel_mat, 4)
-        cont['agent_rel_mat'] = agent_rel_mat
+        cont["agent_rel_mat"] = agent_rel_mat
         if control_mean is None:
             control_mean = ivy_mech.mat_pose_to_rot_vec_pose(agent_rel_mat)
         else:
             control_mean = _pad_to_batch_n_time_dims(control_mean, 3)
-        cont['control_mean'] = control_mean
+        cont["control_mean"] = control_mean
         if control_cov is None:
-            control_cov = ivy.tile(ivy.expand_dims(ivy.zeros_like(control_mean, device=dev_str), axis=-1), (1, 1, 1, 6))
+            control_cov = ivy.tile(
+                ivy.expand_dims(ivy.zeros_like(control_mean, device=dev_str), axis=-1),
+                (1, 1, 1, 6),
+            )
         else:
             control_cov = _pad_to_batch_n_time_dims(control_cov, 4)
-        cont['control_cov'] = control_cov
+        cont["control_cov"] = control_cov
         ivy.Container.__init__(self, cont)
 
 
 # noinspection PyMissingConstructor
 class ESMMemory(ivy.Container):
-
-    def __init__(self,
-                 mean: ivy.Array,
-                 var: ivy.Array = None,
-                 dev_str: str = None):
+    def __init__(self, mean: ivy.Array, var: ivy.Array = None, dev_str: str = None):
         """Create esm memory container
 
         Parameters
@@ -171,10 +179,10 @@ class ESMMemory(ivy.Container):
         """
         cont = dict()
         mean = _pad_to_batch_n_time_dims(mean, 5)
-        cont['mean'] = mean
+        cont["mean"] = mean
         if var is None:
             var = ivy.zeros_like(mean, device=dev_str)
         else:
             var = _pad_to_batch_n_time_dims(var, 5)
-        cont['var'] = var
+        cont["var"] = var
         ivy.Container.__init__(self, cont)
