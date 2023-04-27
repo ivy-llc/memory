@@ -319,7 +319,7 @@ class NTMCell(ivy.Module):
                 erase_vector = ivy.expand_dims(
                     ivy.sigmoid(erase_add_list[i * 2]), axis=1
                 )
-                M = M * ivy.ones(ivy.shape(M)) - ivy.matmul(w, erase_vector)
+                M = M * 1 - ivy.matmul(w, erase_vector)
             add_vector = ivy.expand_dims(ivy.tanh(erase_add_list[i * 2 + 1]), axis=1)
             M = M + ivy.matmul(w, add_vector)
 
