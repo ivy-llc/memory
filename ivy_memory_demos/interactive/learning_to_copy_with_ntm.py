@@ -32,21 +32,28 @@ def train_step(
     max_grad_norm,
 ):
     # compute loss
-    loss, dldv, pred_vals = ivy.execute_with_gradients(
-        lambda v_: loss_fn_in(v_, total_seq, target_seq, seq_len), ntm.v
+    func_ret, grads = ivy.execute_with_gradients(
+        lambda v_: loss_fn_in(v_, total_seq, target_seq, seq_len),
+        ntm.v,
+        ret_grad_idxs=["0"],
     )
 
+    grads = grads["0"]
     global_norm = (
-        ivy.sum(ivy.stack([ivy.sum(grad**2) for grad in dldv.to_flat_list()], axis=0))
+        ivy.sum(
+            ivy.stack(
+                [ivy.sum(grad**2) for grad in grads.cont_to_flat_list()], axis=0
+            )
+        )
         ** 0.5
     )
-    dldv = dldv.map(
+    grads = grads.cont_map(
         lambda x, _: x * max_grad_norm / ivy.maximum(global_norm, max_grad_norm)
     )
 
     # update variables
-    ntm.v = optimizer.step(ntm.v, dldv)
-    return loss, pred_vals
+    ntm.v = optimizer.step(ntm.v, grads)
+    return func_ret
 
 
 def main(
@@ -65,7 +72,7 @@ def main(
 ):
     fw = ivy.choose_random_backend() if fw is None else fw
     ivy.set_backend(fw)
-    f = ivy.get_backend(backend=fw) if f is None else f
+    f = ivy.with_backend(backend=fw) if f is None else f
 
     # train config
     lr = 1e-3 if not overfit_flag else 1e-2
@@ -92,10 +99,6 @@ def main(
     )
 
     # compile loss fn
-    total_seq_example = ivy.random_uniform(
-        shape=(batch_size, 2 * seq_len + 1, num_bits + 1)
-    )
-    target_seq_example = total_seq_example[:, 0:seq_len, :-1]
     if compile_flag:
         loss_fn_maybe_compiled = ic.compile(
             lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(ntm, v, ttl_sq, trgt_sq, sq_ln),
