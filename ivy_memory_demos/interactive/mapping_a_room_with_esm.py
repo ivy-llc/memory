@@ -160,7 +160,7 @@ class Simulator(BaseSimulator):
             self._default_camera.set_orientation(np.array([2.642, 0.596, -0.800]))
 
             # make vision sensor child of drone
-            vision_sensor = self._vision_sensors[0]
+            self._vision_sensors[0]
             vision_sensor_body = self._vision_sensor_bodies[0]
             vision_sensor_body.set_quaternion([0.5, 0.5, 0.5, 0.5])
             vision_sensor_body.set_position(self._drone.get_position())
@@ -168,24 +168,27 @@ class Simulator(BaseSimulator):
             vision_sensor_body.set_parent(self._drone)
 
             # public drone
-            cam_rel_to_mat = ivy.array(
-                vision_sensor.get_matrix(self._drone)[0:3].tolist()
-            )
             self.drone = Drone(self._drone, DroneCam(self._vision_sensors[0]))
 
             # wait for user input
             self._user_prompt(
                 "\nInitialized scene with a drone in the centre.\n\n"
                 "You can click on the drone,"
-                "then select the box icon with four arrows in the top panel of the simulator, "
+                "then select the box icon with four arrows in the top panel "
+                "of the simulator, "
                 "and then drag the drone around dynamically.\n"
-                "Starting to drag and then holding ctrl allows you to also drag the camera up and down. \n\n"
-                "This demo enables you to capture 10 different images from the drone forward facing camera, "
-                "and render the first 10 point cloud representations of the ESM memory in an open3D visualizer.\n\n"
-                "Both visualizers can be translated and rotated by clicking either the left mouse button or the wheel, "
+                "Starting to drag and then holding ctrl allows you to also "
+                "drag the camera up and down. \n\n"
+                "This demo enables you to capture 10 different images "
+                "from the drone forward facing camera, "
+                "and render the first 10 point cloud representations of the "
+                "ESM memory in an open3D visualizer.\n\n"
+                "Both visualizers can be translated and rotated by clicking "
+                "either the left mouse button or the wheel, "
                 "and then dragging the mouse.\n"
                 "Scrolling the mouse wheel zooms the view in and out.\n\n"
-                "Both visualizers can be rotated and zoomed by clicking either the left mouse button or the wheel, "
+                "Both visualizers can be rotated and zoomed by clicking "
+                "either the left mouse button or the wheel, "
                 "and then dragging with the mouse.\n\n"
                 "Press enter in the terminal to start the demo.\n\n"
             )

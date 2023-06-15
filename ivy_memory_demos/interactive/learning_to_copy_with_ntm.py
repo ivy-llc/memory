@@ -1,7 +1,7 @@
 # global
 import ivy
 
-# import ivy.compiler.compiler as ic
+# import  ivy.compiler.compiler as ic
 import cv2
 import argparse
 import numpy as np

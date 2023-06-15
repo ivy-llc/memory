@@ -226,7 +226,8 @@ class ESM(ivy.Module):
         cam_rel_poses
             Relative pose of camera to agent *[batch_size, n, c, 6]*
         cam_rel_mats
-            Relative transformation matrix from camera to agent *[batch_size, n, c, 3, 4]*
+            Relative transformation matrix from camera to agent
+            *[batch_size, n, c, 3, 4]*
         uniform_sphere_pixel_coords
             Pixel coords *[batch_size, n, h, w, 3]*
         cam_coords_f1
@@ -260,7 +261,6 @@ class ESM(ivy.Module):
             *[batch_size, 1, h, w, 3+f]*
 
         """
-
         # cam 1 to cam 2 coords
 
         if ivy.is_bool_dtype(cam_coords_f1):
@@ -383,7 +383,6 @@ class ESM(ivy.Module):
             *[batch_size, h, w, 3+f]*
 
         """
-
         # Frame 1 #
         # --------#
 
@@ -500,7 +499,6 @@ class ESM(ivy.Module):
             batch_size, n, oh, ow, 3+f]*    *[batch_size, n, oh, ow, 3+f]*
 
         """
-
         # coords from all scene cameras wrt world
 
         images_list = list()
@@ -632,7 +630,8 @@ class ESM(ivy.Module):
         uniform_sphere_pixel_coords
             Uniform sphere pixel co-ordinates *[batch_size, oh, ow, 3]*
         agent_rel_poses
-            Relative poses of agents to the previous step *[batch_size, num_timesteps, 6]*
+            Relative poses of agents to the previous step
+            *[batch_size, num_timesteps, 6]*
         agent_rel_pose_covs
             Agent relative pose covariances *[batch_size, num_timesteps, 6, 6]*
         agent_rel_mats
@@ -649,7 +648,6 @@ class ESM(ivy.Module):
             list of *[batch_size, oh, ow, (3+f)]*, list of *[batch_size, oh, ow, (3+f)]*
 
         """
-
         fused_list = list()
         fused_variances_list = list()
 
@@ -933,7 +931,8 @@ class ESM(ivy.Module):
             )
 
             # replace temporary zeros with their prior values
-            # This ensures that the smoothing operation only changes the values for regions of high variance
+            # This ensures that the smoothing operation only
+            # changes the values for regions of high variance
             if fix_low_var_pixels:
                 fused_val = ivy.where(low_var_mask, fused_val, smoothed_fused_val)
             else:
@@ -977,7 +976,6 @@ class ESM(ivy.Module):
             New memory of type ESMMemory
 
         """
-
         # get shapes
         img_meas = (next(iter(obs.img_meas.values()))).img_mean
         if batch_size is None:

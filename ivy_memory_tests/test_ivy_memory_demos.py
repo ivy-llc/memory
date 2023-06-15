@@ -20,7 +20,8 @@ def test_demo_ntm_copy(compile_flag, dev_str, f, fw):
     from ivy_memory_demos.interactive.learning_to_copy_with_ntm import main
 
     if fw in ["numpy", "tensorflow_graph"]:
-        # numpy does not support gradients, and demo compiles already, so no need to use tf_graph_call
+        # numpy does not support gradients, and demo compiles already,
+        # so no need to use tf_graph_call
         pytest.skip()
     if fw in ["torch", "jax"] and compile_flag:
         # PyTorch Dictionary inputs to traced functions must have consistent type
