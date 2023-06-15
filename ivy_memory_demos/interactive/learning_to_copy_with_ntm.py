@@ -105,9 +105,6 @@ def main(
             lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(ntm, v, ttl_sq, trgt_sq, sq_ln),
             return_backend_compiled_fn=True,
         )
-        # loss_fn_maybe_compiled = lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(
-        #     ntm, v, ttl_sq, trgt_sq, sq_ln
-        # )
     else:
         loss_fn_maybe_compiled = lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(
             ntm, v, ttl_sq, trgt_sq, sq_ln
