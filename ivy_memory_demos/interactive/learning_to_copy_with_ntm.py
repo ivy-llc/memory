@@ -1,7 +1,7 @@
 # global
 import ivy
 
-# import ivy.compiler.compiler as ic
+import ivy.compiler.compiler as ic
 import cv2
 import argparse
 import numpy as np
@@ -101,13 +101,13 @@ def main(
 
     # compile loss fn
     if compile_flag:
-        # loss_fn_maybe_compiled = ic.compile(
-        #     lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(ntm, v, ttl_sq, trgt_sq, sq_ln),
-        #     return_backend_compiled_fn=True,
-        # )
-        loss_fn_maybe_compiled = lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(
-            ntm, v, ttl_sq, trgt_sq, sq_ln
+        loss_fn_maybe_compiled = ic.compile(
+            lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(ntm, v, ttl_sq, trgt_sq, sq_ln),
+            return_backend_compiled_fn=True,
         )
+        # loss_fn_maybe_compiled = lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(
+        #     ntm, v, ttl_sq, trgt_sq, sq_ln
+        # )
     else:
         loss_fn_maybe_compiled = lambda v, ttl_sq, trgt_sq, sq_ln: loss_fn(
             ntm, v, ttl_sq, trgt_sq, sq_ln
