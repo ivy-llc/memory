@@ -240,7 +240,7 @@ Next, we instantiate this model, and verify that the returned tensors are of the
     # create model
     in_channels = 32
     out_channels = 8
-    ivy.set_framework('torch')
+    ivy.set_backend('torch')
     model = IvyModelWithESM(in_channels, out_channels)
 
     # input config
@@ -259,8 +259,8 @@ Next, we instantiate this model, and verify that the returned tensors are of the
     inv_calib_mats = ivy.random_uniform(shape=[batch_size, num_timesteps, 3, 3])
     cam_coords = ivy_vision.pixel_to_cam_coords(pixel_coords, inv_calib_mats)[..., 0:3]
     features = ivy.random_uniform(shape=[batch_size, num_timesteps] + image_dims + [num_feature_channels])
-    img_mean = ivy.concatenate((cam_coords, features), -1)
-    cam_rel_mat = ivy.identity(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
+    img_mean = ivy.concat((cam_coords, features), axis=-1)
+    cam_rel_mat = ivy.eye(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
 
     # place these into an ESM camera measurement container
     esm_cam_meas = ESMCamMeasurement(
@@ -269,7 +269,7 @@ Next, we instantiate this model, and verify that the returned tensors are of the
     )
 
     # define agent pose transformation
-    agent_rel_mat = ivy.identity(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
+    agent_rel_mat = ivy.eye(4, batch_shape=[batch_size, num_timesteps])[..., 0:3, :]
 
     # collect together into an ESM observation container
     esm_obs = ESMObservation(
@@ -290,7 +290,7 @@ Finally, we define a dummy loss function, and show how the ESM network can be tr
 
     def loss_fn(v):
         pred = model(esm_obs, v=v)
-        return ivy.reduce_mean((pred - target) ** 2)
+        return ivy.mean((pred - target) ** 2)
 
     # optimizer
     optimizer = ivy.SGD(lr=1e-4)
@@ -302,7 +302,7 @@ Finally, we define a dummy loss function, and show how the ESM network can be tr
         model.v = optimizer.step(model.v, grads)
         print('step {}, loss = {}'.format(i, ivy.to_numpy(loss).item()))
     print('\ndummy Ivy ESM model trained!\n')
-    ivy.unset_framework()
+    ivy.unset_backend()
 
 **Neural Turing Machine**
 
@@ -343,7 +343,7 @@ Next, we instantiate this model, and verify that the returned tensors are of the
     # create model
     in_channels = 32
     out_channels = 8
-    ivy.set_framework('tensorflow')
+    ivy.set_backend('tensorflow')
     model = TfModelWithNTM(in_channels, out_channels)
 
     # define inputs
