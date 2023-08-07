@@ -133,7 +133,7 @@ td = NTMTestData()
 
 @pytest.mark.parametrize("addressing_mode", ["content", "content_and_location"])
 @pytest.mark.parametrize("batch_shape", [[1], [1, 2]])
-def test_ntm(addressing_mode, batch_shape, dev_str, f, fw):
+def test_ntm(addressing_mode, batch_shape, dev_str, fw):
     ivy.set_backend(fw)
 
     # ntm config

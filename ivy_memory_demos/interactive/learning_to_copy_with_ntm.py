@@ -68,12 +68,10 @@ def main(
     memory_vector_dim=28,
     overfit_flag=False,
     interactive=True,
-    f=None,
     fw=None,
 ):
     fw = ivy.choose_random_backend() if fw is None else fw
     ivy.set_backend(fw)
-    f = ivy.with_backend(backend=fw) if f is None else f
 
     # train config
     lr = 1e-3 if not overfit_flag else 1e-2
@@ -270,7 +268,6 @@ if __name__ == "__main__":
 
     parsed_args = parser.parse_args()
     fw = parsed_args.backend
-    f = None if fw is None else ivy.get_backend(backend=fw)
     main(
         parsed_args.batch_size,
         parsed_args.num_training_steps,
@@ -282,6 +279,5 @@ if __name__ == "__main__":
         parsed_args.memory_vector_dim,
         parsed_args.overfit,
         not parsed_args.non_interactive,
-        f,
         fw,
     )
