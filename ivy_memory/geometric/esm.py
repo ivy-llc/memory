@@ -327,7 +327,7 @@ class ESM(ivy.Module):
             var_threshold=self._var_threshold,
             uniform_pixel_coords=uniform_sphere_pixel_coords,
             batch_shape=(batch_size, num_timesteps),
-            dev_str=self._dev,
+            device=self._dev,
         )[0:2]
 
     def _omni_frame_to_omni_frame_projection(
@@ -458,7 +458,7 @@ class ESM(ivy.Module):
             var_threshold=self._var_threshold[:, 0],
             uniform_pixel_coords=uniform_sphere_pixel_coords,
             batch_shape=(batch_size,),
-            dev_str=self._dev,
+            device=self._dev,
         )[0:2]
 
     # Measurement #
@@ -792,7 +792,7 @@ class ESM(ivy.Module):
 
         """
         uniform_pixel_coords = ivy_vision.create_uniform_pixel_coords_image(
-            self._sphere_img_dims, [batch_size, timesteps], dev_str=self._dev
+            self._sphere_img_dims, [batch_size, timesteps], device=self._dev
         )[..., 0:2]
         empty_memory = {
             "mean": ivy.concat(
@@ -1098,7 +1098,7 @@ class ESM(ivy.Module):
 
         # B x N x OH x OW x 3
         uniform_sphere_pixel_coords = ivy_vision.create_uniform_pixel_coords_image(
-            self._sphere_img_dims, (batch_size, num_timesteps), dev_str=self._dev
+            self._sphere_img_dims, (batch_size, num_timesteps), device=self._dev
         )
 
         # B x N x OH x OW x (3+F),    B x N x OH x OW x (3+F)

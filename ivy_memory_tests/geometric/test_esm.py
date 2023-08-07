@@ -31,7 +31,7 @@ def _get_dummy_obs(
     dev_str = ivy.default_device(dev_str)
 
     uniform_pixel_coords = ivy_vision.create_uniform_pixel_coords_image(
-        image_dims, [batch_size, num_frames], dev_str=dev_str
+        image_dims, [batch_size, num_frames], device=dev_str
     )
 
     img_meas = dict()
