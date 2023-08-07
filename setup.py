@@ -114,17 +114,17 @@ long_description = "\n".join(lines)
 
 setup(
     name="ivy-memory",
-    version="1.1.9",
-    author="Ivy Team",
-    author_email="ivydl.team@gmail.com",
+    version="0.0.1.post0",
+    author="Unify",
+    author_email="hello@unify.ai",
     description=(
         "End-to-end memory modules for machine learning developers, " "written in Ivy."
     ),
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url="https://lets-unify.ai/memory",
+    url="https://unify.ai/docs/memory",
     project_urls={
-        "Docs": "https://lets-unify.ai/memory/",
+        "Docs": "https://unify.ai/docs/memory/",
         "Source": "https://github.com/unifyai/memory",
     },
     packages=setuptools.find_packages(),
