@@ -86,7 +86,7 @@ An example of overfitting on copying a single sequence,
 with real-time training speed, is given below:
 
 <p align="center">
-    <img width="75%" style="display: block;" src='https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/ivy_memory/demo_a.gif?raw=true'>
+    <img width="75%" style="display: block;" src='https://github.com/unifyai/unifyai.github.io/blob/main/img/externally_linked/ivy_memory/demo_a.gif?raw=true'>
 </p>
 
 ### Mapping a Room with ESM
@@ -105,7 +105,7 @@ and the incrementally constructed omni-directional ESM feature and depth images 
 While this example only projects color values into the memory, arbitrary neural network features can also be projected, for end-to-end training.
 
 <p align="center">
-    <img width="75%" style="display: block;" src='https://github.com/unifyai/unifyai.github.io/blob/master/img/externally_linked/ivy_memory/demo_b.gif?raw=true'>
+    <img width="75%" style="display: block;" src='https://github.com/unifyai/unifyai.github.io/blob/main/img/externally_linked/ivy_memory/demo_b.gif?raw=true'>
 </p>
 
 ## Get Involved
