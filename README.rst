@@ -195,7 +195,7 @@ neural memory, pre-trained models + implementations, and builder tools with trai
 
 **Quick Start**
 
-Ivy memory can be installed like so: ``pip install ivy-memory``
+Ivy memory can be installed like so: ``pip install ivy-memory==0.0.1.post0``
 
 .. _demos: https://github.com/unifyai/memory/tree/main/ivy_memory_demos
 .. _interactive: https://github.com/unifyai/memory/tree/main/ivy_memory_demos/interactive
