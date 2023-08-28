@@ -1,3 +1,5 @@
+.. title:: Ivy Memory
+
 .. include:: ../README.rst
 
 .. autosummary::
