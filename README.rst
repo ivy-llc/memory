@@ -58,7 +58,7 @@ Contents
 Overview
 --------
 
-.. _docs: https://lets-unify.ai/memory
+.. _docs: https://unify.ai/docs/memory/
 
 **What is Ivy Memory?**
 
